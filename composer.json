@@ -1,0 +1,37 @@
+{
+    "name": "phpgl/php-towerdefense",
+    "authors": [
+        {
+            "name": "Mario Döring"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "TowerDefense\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TowerDefense\\Tests\\": "tests/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../visu"
+        }
+    ],
+    "require": {
+        "phpgl/ide-stubs": "^1.0",
+        "phpgl/visu": "dev-master"
+    },
+    
+    "scripts": {
+        "post-root-package-install": [
+            "mkdir var/ && mkdir var/cache/ && chmod -R 777 var/"
+        ],
+        "post-autoload-dump": [
+            "ClanCats\\Container\\ComposerContainerFileLoader::generateMap"
+        ]
+    }
+}

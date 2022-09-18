@@ -1,0 +1,7 @@
+/**
+ * This is the applications main container file. Or in other words, 
+ * the place where you want to specify your parameters and services. 
+ * 
+ * By default all container files located in the /app directory are added
+ * to the current namespace so you can import them using the `import app/myfile`
+ */
