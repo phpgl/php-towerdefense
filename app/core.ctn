@@ -1,0 +1,29 @@
+/**
+ * Window
+ */
+@window.main.hints: VISU\OS\WindowHints
+@window.main: VISU\OS\Window(
+    :game.name, 
+    :window.default_widht, 
+    :window.default_height, 
+    @window.main.hints
+)
+
+/**
+ * VISU GL State
+ */
+@GL: VISU\Graphics\GLState
+
+/**
+ * Main Game & Loop
+ */
+// the main game
+@game: TowerDefense\Game(@container)
+
+// the game loop
+@game_loop.main: VISU\Runtime\GameLoop(@game)
+
+/**
+ * Event handling 
+ */
+@input: VISU\OS\Input(@window.main, @visu.dispatcher)

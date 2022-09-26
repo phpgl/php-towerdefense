@@ -1,0 +1,5 @@
+/**
+ * Window action handler
+ */
+@signal.handler.window_actions: TowerDefense\SignalHandler\WindowActionsHandler
+    = on: 'input.key', call: 'handleWindowKey'

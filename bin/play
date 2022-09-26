@@ -2,6 +2,7 @@
 <?php
 
 use VISU\Graphics\GLState;
+use VISU\OS\WindowEventCallbackHandler;
 
 if (!defined('DS')) { define('DS', DIRECTORY_SEPARATOR); }
 
@@ -18,18 +19,31 @@ $container = require __DIR__ . DS . '..' . DS . 'bootstrap.php';
 
 glfwInit();
 
+$game = $container->get('game');
+$game->start();
+
+glfwTerminate();
+
+die;
+
 $gl = new GLState;
 
 $window = new VISU\OS\Window('PHP Tower Defense');
 $window->initailize($gl);
 
+$eventHandler = new WindowEventCallbackHandler;
+$window->setEventHandler($eventHandler);
+
 // register a key callback to hnadle ESC key
-$window->setKeyCallback(function($key, $scancode, $action, $mods) use ($window) {
+$eventHandler->onWindowKey(function($window, $key, $scancode, $action, $mods) {
     if ($key == GLFW_KEY_ESCAPE && $action == GLFW_PRESS) {
         $window->setShouldClose(true);
     }
+});
 
-    // when pressing m maximise the window
+
+// register a key callback to handle maximize
+$eventHandler->onWindowKey(function($window, $key, $scancode, $action, $mods) {
     if ($key == GLFW_KEY_M && $action == GLFW_PRESS) {
         if ($window->isMaximized()) {
             $window->restore();
@@ -37,8 +51,10 @@ $window->setKeyCallback(function($key, $scancode, $action, $mods) use ($window) 
             $window->maximize();
         }
     }
+});
 
-    // when pressing i toggle the window iconify state
+// register a key callback to toggle window iconify state
+$eventHandler->onWindowKey(function($window, $key, $scancode, $action, $mods) {
     if ($key == GLFW_KEY_I && $action == GLFW_PRESS) {
         if ($window->isIconified()) {
             $window->restore();
@@ -46,7 +62,6 @@ $window->setKeyCallback(function($key, $scancode, $action, $mods) use ($window) 
             $window->iconify();
         }
     }
-
 });
 
 while(!$window->shouldClose()) {

@@ -1,0 +1,11 @@
+/**
+ * Game basics 
+ */
+:game.name: 'PHP Tower Defense'
+:game.version: 'v0.1'
+
+:game.author: 'Mario Döring (mario-deluna)'
+
+// defaults
+:window.default_widht: 1280
+:window.default_height: 720

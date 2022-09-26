@@ -5,3 +5,19 @@
  * By default all container files located in the /app directory are added
  * to the current namespace so you can import them using the `import app/myfile`
  */
+
+/**
+ * Configuration
+ * defaults, parameters, settings and co
+ */
+import app/config
+
+/**
+ * Core services like game loop, window etc.
+ */
+import app/core
+
+/**
+ * Signal handlers
+ */
+import app/signals
