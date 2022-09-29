@@ -3,9 +3,9 @@
 namespace TowerDefense;
 
 use GameContainer;
-
+use VISU\Graphics\Font\DebugFontRenderer;
+use VISU\OS\Key;
 use VISU\OS\Window;
-use VISU\Runtime\GameLoop;
 use VISU\Runtime\GameLoopDelegate;
 
 class Game implements GameLoopDelegate
@@ -26,6 +26,13 @@ class Game implements GameLoopDelegate
     private Window $window;
 
     /**
+     * Debug font renderer
+     * 
+     * @var DebugFontRenderer
+     */
+    private DebugFontRenderer $debugTextRenderer;
+
+    /**
      * Construct a new game instance
      */
     public function __construct(GameContainer $container)
@@ -39,12 +46,15 @@ class Game implements GameLoopDelegate
      * This will begin the game loop
      */
     public function start()
-    {
+    { 
         // initialize the window
         $this->window->initailize($this->container->resolveGL());
 
         // load the input handler, so it dispatches signals
         $this->container->resolveInput();
+        
+        // load a basic font renderer
+        $this->debugTextRenderer = new DebugFontRenderer(DebugFontRenderer::loadDebugFontAtlas(), $this->container->resolveGL());
 
         // start the game loop
         $this->container->resolveGameLoopMain()->start();
@@ -64,6 +74,7 @@ class Game implements GameLoopDelegate
     public function update() : void
     {
         $this->window->pollEvents();
+
     }
 
     /**
@@ -81,8 +92,13 @@ class Game implements GameLoopDelegate
     public function render(float $deltaTime) : void
     {
         glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
+        $t = "FPS: " . round($this->container->resolveGameLoopMain()->getAverageFps()) . 
+        " ATC: " . $this->container->resolveGameLoopMain()->getAverageTickCount() . "\n";
+
+        $this->debugTextRenderer->renderText($t);
 
         $this->window->swapBuffers();
     }

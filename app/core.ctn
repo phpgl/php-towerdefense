@@ -21,7 +21,8 @@
 @game: TowerDefense\Game(@container)
 
 // the game loop
-@game_loop.main: VISU\Runtime\GameLoop(@game)
+// we are tick the game 60 times a second
+@game_loop.main: VISU\Runtime\GameLoop(@game, 60)
 
 /**
  * Event handling 

@@ -1,9 +1,6 @@
 #!/usr/bin/env php
 <?php
 
-use VISU\Graphics\GLState;
-use VISU\OS\WindowEventCallbackHandler;
-
 if (!defined('DS')) { define('DS', DIRECTORY_SEPARATOR); }
 
 set_time_limit(0);
@@ -17,61 +14,18 @@ set_time_limit(0);
  */
 $container = require __DIR__ . DS . '..' . DS . 'bootstrap.php';
 
+/**
+ *---------------------------------------------------------------
+ * Initialie Game
+ *---------------------------------------------------------------
+ *
+ * Starts GLFW, load the game entry point and start the game loop.
+ */
 glfwInit();
 
+// load & start the game
 $game = $container->get('game');
 $game->start();
 
-glfwTerminate();
-
-die;
-
-$gl = new GLState;
-
-$window = new VISU\OS\Window('PHP Tower Defense');
-$window->initailize($gl);
-
-$eventHandler = new WindowEventCallbackHandler;
-$window->setEventHandler($eventHandler);
-
-// register a key callback to hnadle ESC key
-$eventHandler->onWindowKey(function($window, $key, $scancode, $action, $mods) {
-    if ($key == GLFW_KEY_ESCAPE && $action == GLFW_PRESS) {
-        $window->setShouldClose(true);
-    }
-});
-
-
-// register a key callback to handle maximize
-$eventHandler->onWindowKey(function($window, $key, $scancode, $action, $mods) {
-    if ($key == GLFW_KEY_M && $action == GLFW_PRESS) {
-        if ($window->isMaximized()) {
-            $window->restore();
-        } else {
-            $window->maximize();
-        }
-    }
-});
-
-// register a key callback to toggle window iconify state
-$eventHandler->onWindowKey(function($window, $key, $scancode, $action, $mods) {
-    if ($key == GLFW_KEY_I && $action == GLFW_PRESS) {
-        if ($window->isIconified()) {
-            $window->restore();
-        } else {
-            $window->iconify();
-        }
-    }
-});
-
-while(!$window->shouldClose()) {
-    $window->pollEvents();
-
-    glClearColor(0.0, 0.0, 0.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    $window->swapBuffers();
-}
-
-
+// clean up glfw
 glfwTerminate();
