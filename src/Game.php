@@ -50,8 +50,8 @@ class Game implements GameLoopDelegate
         // initialize the window
         $this->window->initailize($this->container->resolveGL());
 
-        // load the input handler, so it dispatches signals
-        $this->container->resolveInput();
+        // make the input the windows event handler
+        $this->window->setEventHandler($this->container->resolveInput());
         
         // load a basic font renderer
         $this->debugTextRenderer = new DebugFontRenderer(DebugFontRenderer::loadDebugFontAtlas(), $this->container->resolveGL());
@@ -74,8 +74,7 @@ class Game implements GameLoopDelegate
     public function update() : void
     {
         $this->window->pollEvents();
-
-    }
+  }
 
     /**
      * Render the current game state
