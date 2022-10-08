@@ -3,7 +3,9 @@
 namespace TowerDefense;
 
 use GameContainer;
-use VISU\Graphics\Font\DebugFontRenderer;
+
+use TowerDefense\Debug\DebugTextOverlay;
+
 use VISU\OS\Key;
 use VISU\OS\Window;
 use VISU\Runtime\GameLoopDelegate;
@@ -27,10 +29,8 @@ class Game implements GameLoopDelegate
 
     /**
      * Debug font renderer
-     * 
-     * @var DebugFontRenderer
      */
-    private DebugFontRenderer $debugTextRenderer;
+    private DebugTextOverlay $dbgText;
 
     /**
      * Construct a new game instance
@@ -39,6 +39,15 @@ class Game implements GameLoopDelegate
     {
         $this->container = $container;
         $this->window = $container->resolveWindowMain();
+
+        // initialize the window
+        $this->window->initailize($this->container->resolveGL());
+
+        // make the input the windows event handler
+        $this->window->setEventHandler($this->container->resolveInput());
+
+        // initialize the debug text renderer
+        $this->dbgText = new DebugTextOverlay($container);
     }
 
     /**
@@ -46,16 +55,7 @@ class Game implements GameLoopDelegate
      * This will begin the game loop
      */
     public function start()
-    { 
-        // initialize the window
-        $this->window->initailize($this->container->resolveGL());
-
-        // make the input the windows event handler
-        $this->window->setEventHandler($this->container->resolveInput());
-        
-        // load a basic font renderer
-        $this->debugTextRenderer = new DebugFontRenderer(DebugFontRenderer::loadDebugFontAtlas(), $this->container->resolveGL());
-
+    {
         // start the game loop
         $this->container->resolveGameLoopMain()->start();
     }
@@ -74,7 +74,7 @@ class Game implements GameLoopDelegate
     public function update() : void
     {
         $this->window->pollEvents();
-  }
+    }
 
     /**
      * Render the current game state
@@ -93,11 +93,7 @@ class Game implements GameLoopDelegate
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-        $t = "FPS: " . round($this->container->resolveGameLoopMain()->getAverageFps()) . 
-        " ATC: " . $this->container->resolveGameLoopMain()->getAverageTickCount() . "\n";
-
-        $this->debugTextRenderer->renderText($t);
+        $this->dbgText->draw($deltaTime);
 
         $this->window->swapBuffers();
     }
