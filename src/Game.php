@@ -5,6 +5,8 @@ namespace TowerDefense;
 use GameContainer;
 
 use TowerDefense\Debug\DebugTextOverlay;
+use TowerDefense\Scene\BaseScene;
+use TowerDefense\Scene\LevelScene;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\ClearPass;
 use VISU\Graphics\Rendering\PipelineContainer;
@@ -47,6 +49,11 @@ class Game implements GameLoopDelegate
     private PipelineResources $pipelineResources;
 
     /**
+     * The currently active scene
+     */
+    private BaseScene $currentScene;
+
+    /**
      * Construct a new game instance
      */
     public function __construct(GameContainer $container)
@@ -65,6 +72,17 @@ class Game implements GameLoopDelegate
 
         // initialize the debug text renderer
         $this->dbgText = new DebugTextOverlay($container);
+
+        // load an inital scene
+        $this->currentScene = new LevelScene($container);
+    }
+
+    /**
+     * Returns the current scene
+     */
+    public function getCurrentScene() : BaseScene
+    {
+        return $this->currentScene;
     }
 
     /**
@@ -73,6 +91,9 @@ class Game implements GameLoopDelegate
      */
     public function start()
     {
+        // initialize the current scene
+        $this->currentScene->load();
+
         // start the game loop
         $this->container->resolveGameLoopMain()->start();
     }
@@ -91,6 +112,9 @@ class Game implements GameLoopDelegate
     public function update() : void
     {
         $this->window->pollEvents();
+
+        // update the current scene
+        $this->currentScene->update();
     }
 
     /**
@@ -118,6 +142,9 @@ class Game implements GameLoopDelegate
 
         // clear the backbuffer
         $pipeline->addPass(new ClearPass($backbuffer));
+
+        // render the current scene
+        $this->currentScene->render($pipeline, $data, $this->pipelineResources, $deltaTime);
         
         // render debug text
         $this->dbgText->attachPass($pipeline, $backbuffer, $deltaTime);
@@ -140,4 +167,15 @@ class Game implements GameLoopDelegate
     {
         return $this->window->shouldClose();
     }
+
+    /**
+     * Custom debug info.
+     * When because of the way dependencies form in this came the debugging output can become very
+     * large. This method is used to limit the amount of information that is displayed.
+     * 
+     * I know, I know, there should't be references to game in the first place..
+     */
+    public function __debugInfo() {
+		return ['currentScene' => $this->currentScene->getName()];
+	}
 }

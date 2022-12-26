@@ -22,8 +22,8 @@
         }
     ],
     "require": {
-        "phpgl/ide-stubs": "^1.0",
-        "phpgl/visu": "dev-master"
+        "phpgl/ide-stubs": "dev-main",
+        "phpgl/visu": "@dev"
     },
     
     "scripts": {

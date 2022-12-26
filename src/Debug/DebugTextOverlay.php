@@ -75,6 +75,7 @@ class DebugTextOverlay
 
         // Add current FPS plus the average tick count and the compensation
         $this->rows[] = $this->gameLoopMetrics($compensation);
+        $this->rows[] = "Scene: " . $this->container->resolveGame()->getCurrentScene()->getName();
         
         // we render to the backbuffer
         $this->debugTextRenderer->attachPass($pipeline, $rt, [
@@ -83,5 +84,13 @@ class DebugTextOverlay
 
         // clear the rows for the next frame
         $this->rows = [];
+    }
+
+    public function __debugInfo()
+    {
+        return [
+            'enabled' => $this->enabled,
+            'rows' => $this->rows,
+        ];
     }
 }
