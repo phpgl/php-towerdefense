@@ -5,7 +5,11 @@ namespace TowerDefense;
 use GameContainer;
 
 use TowerDefense\Debug\DebugTextOverlay;
-
+use VISU\Graphics\Rendering\Pass\BackbufferData;
+use VISU\Graphics\Rendering\Pass\ClearPass;
+use VISU\Graphics\Rendering\PipelineContainer;
+use VISU\Graphics\Rendering\PipelineResources;
+use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\OS\Key;
 use VISU\OS\Window;
 use VISU\Runtime\GameLoopDelegate;
@@ -28,9 +32,19 @@ class Game implements GameLoopDelegate
     private Window $window;
 
     /**
+     * Current game tick
+     */
+    private int $tick = 0;
+
+    /**
      * Debug font renderer
      */
     private DebugTextOverlay $dbgText;
+
+    /**
+     * Pipeline resource manager
+     */
+    private PipelineResources $pipelineResources;
 
     /**
      * Construct a new game instance
@@ -45,6 +59,9 @@ class Game implements GameLoopDelegate
 
         // make the input the windows event handler
         $this->window->setEventHandler($this->container->resolveInput());
+
+        // initialize the pipeline resources
+        $this->pipelineResources = new PipelineResources($container->resolveGL());
 
         // initialize the debug text renderer
         $this->dbgText = new DebugTextOverlay($container);
@@ -90,10 +107,23 @@ class Game implements GameLoopDelegate
      */
     public function render(float $deltaTime) : void
     {
-        glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        $windowRenderTarget = $this->window->getRenderTarget();
+        // $windowRenderTarget->framebuffer()->clearColor = new Vec4(1, 0.2, 0.2, 1.0);
 
-        $this->dbgText->draw($deltaTime);
+        $data = new PipelineContainer;
+        $pipeline = new RenderPipeline($this->pipelineResources, $data, $windowRenderTarget);
+
+        // backbuffer render target
+        $backbuffer = $data->get(BackbufferData::class)->target;
+
+        // clear the backbuffer
+        $pipeline->addPass(new ClearPass($backbuffer));
+        
+        // render debug text
+        $this->dbgText->attachPass($pipeline, $backbuffer, $deltaTime);
+
+        // execute the pipeline
+        $pipeline->execute($this->tick++);
 
         $this->window->swapBuffers();
     }

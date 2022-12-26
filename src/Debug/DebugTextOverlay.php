@@ -4,6 +4,10 @@ namespace TowerDefense\Debug;
 
 use GameContainer;
 use VISU\Graphics\Font\DebugFontRenderer;
+use VISU\Graphics\Rendering\Renderer\DebugOverlayText;
+use VISU\Graphics\Rendering\Renderer\DebugOverlayTextRenderer;
+use VISU\Graphics\Rendering\RenderPipeline;
+use VISU\Graphics\Rendering\Resource\RenderTargetResource;
 use VISU\OS\Input;
 use VISU\OS\Key;
 use VISU\Signals\Input\KeySignal;
@@ -12,10 +16,8 @@ class DebugTextOverlay
 {
     /**
      * Debug font renderer
-     * 
-     * @var DebugFontRenderer
      */
-    private DebugFontRenderer $debugTextRenderer;
+    private DebugOverlayTextRenderer $debugTextRenderer;
 
     /**
      * An array of string to be renderd on the next frame
@@ -37,9 +39,9 @@ class DebugTextOverlay
     public function __construct(
         private GameContainer $container
     ) {
-        $this->debugTextRenderer = new DebugFontRenderer(
-            DebugFontRenderer::loadDebugFontAtlas(), 
-            $container->resolveGL()
+        $this->debugTextRenderer = new DebugOverlayTextRenderer(
+            $container->resolveGL(),
+            DebugOverlayTextRenderer::loadDebugFontAtlas(),
         );
 
         // listen to keyboard events to toggle debug overlay
@@ -64,7 +66,7 @@ class DebugTextOverlay
     /**
      * Draws the debug text overlay if enabled
      */
-    public function draw(float $compensation)
+    public function attachPass(RenderPipeline $pipeline, RenderTargetResource $rt, float $compensation)
     {
         if (!$this->enabled) {
             $this->rows = []; // reset the rows to avoid them stacking up
@@ -73,9 +75,13 @@ class DebugTextOverlay
 
         // Add current FPS plus the average tick count and the compensation
         $this->rows[] = $this->gameLoopMetrics($compensation);
+        
+        // we render to the backbuffer
+        $this->debugTextRenderer->attachPass($pipeline, $rt, [
+            new DebugOverlayText(implode("\n", $this->rows), 10, 10)
+        ]);
 
-        // draw the debug overlay
-        $this->debugTextRenderer->renderText(implode("\n", $this->rows));
+        // clear the rows for the next frame
         $this->rows = [];
     }
 }
