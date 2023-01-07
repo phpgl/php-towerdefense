@@ -15,6 +15,24 @@ use VISU\Signals\Input\KeySignal;
 class DebugTextOverlay
 {
     /**
+     * Rows to be rendered on the next frame
+     * 
+     * @var array
+     */
+    static private $globalRows = [];
+
+    /**
+     * Adds a string to the global debug overlay
+     * 
+     * @param string $row 
+     * @return void 
+     */
+    static public function debugString(string $row) : void
+    {
+        self::$globalRows[] = $row;
+    }
+
+    /**
      * Debug font renderer
      */
     private DebugOverlayTextRenderer $debugTextRenderer;
@@ -70,12 +88,16 @@ class DebugTextOverlay
     {
         if (!$this->enabled) {
             $this->rows = []; // reset the rows to avoid them stacking up
+            self::$globalRows = [];
             return;
         }
 
         // Add current FPS plus the average tick count and the compensation
         $this->rows[] = $this->gameLoopMetrics($compensation);
         $this->rows[] = "Scene: " . $this->container->resolveGame()->getCurrentScene()->getName();
+
+        // add global rows
+        $this->rows = array_merge($this->rows, self::$globalRows);
         
         // we render to the backbuffer
         $this->debugTextRenderer->attachPass($pipeline, $rt, [
@@ -84,6 +106,7 @@ class DebugTextOverlay
 
         // clear the rows for the next frame
         $this->rows = [];
+        self::$globalRows = [];
     }
 
     public function __debugInfo()
