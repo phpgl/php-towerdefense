@@ -3,6 +3,7 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use VISU\Graphics\Camera;
 use VISU\Graphics\CameraProjectionMode;
@@ -10,6 +11,7 @@ use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\RenderPipeline;
+use VISU\OS\Key;
 use VISU\System\VISUCameraSystem;
 
 class LevelScene extends BaseScene
@@ -75,20 +77,21 @@ class LevelScene extends BaseScene
     public function update() : void
     {
         $this->cameraSystem->update($this->entities);
+
+        $this->cameraSystem->getActiveCamera($this->entities)->allowInterpolation = !$this->container->resolveInput()->isKeyPressed(Key::SPACE);
+
+        DebugTextOverlay::debugString('Allow interpolation: ' . ($this->cameraSystem->getActiveCamera($this->entities)->allowInterpolation ? 'true' : 'false'));
     }
 
     /**
      * Renders the scene
      * 
-     * @param RenderPipeline $pipeline The render pipeline to use
-     * @param float $deltaTime
+     * @param RenderContext $context
      */
-    public function render(RenderPipeline $pipeline, PipelineContainer $data, PipelineResources $resources, float $deltaTime) : void
+    public function render(RenderContext $context) : void
     {
-        $context = new RenderContext($pipeline, $data, $resources, $deltaTime);
-
         $this->cameraSystem->render($this->entities, $context);
 
-        $this->terrainRenderer->attachPass($pipeline);
+        $this->terrainRenderer->attachPass($context->pipeline);
     }
 }

@@ -7,6 +7,7 @@ use VISU\ECS\EntitiesInterface;
 use VISU\ECS\EntityRegisty;
 use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
+use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\RenderPipeline;
 
 abstract class BaseScene
@@ -48,8 +49,7 @@ abstract class BaseScene
     /**
      * Renders the scene
      * 
-     * @param RenderPipeline $pipeline The render pipeline to use
-     * @param float $deltaTime
+     * @param RenderContext $context
      */
-    abstract public function render(RenderPipeline $pipeline, PipelineContainer $data, PipelineResources $resources, float $deltaTime) : void;
+    abstract public function render(RenderContext $context) : void;
 }

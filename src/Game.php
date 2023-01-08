@@ -11,6 +11,7 @@ use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\ClearPass;
 use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
+use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\OS\Key;
 use VISU\OS\Window;
@@ -136,6 +137,7 @@ class Game implements GameLoopDelegate
 
         $data = new PipelineContainer;
         $pipeline = new RenderPipeline($this->pipelineResources, $data, $windowRenderTarget);
+        $context = new RenderContext($pipeline, $data, $this->pipelineResources, $deltaTime);
 
         // backbuffer render target
         $backbuffer = $data->get(BackbufferData::class)->target;
@@ -144,7 +146,7 @@ class Game implements GameLoopDelegate
         $pipeline->addPass(new ClearPass($backbuffer));
 
         // render the current scene
-        $this->currentScene->render($pipeline, $data, $this->pipelineResources, $deltaTime);
+        $this->currentScene->render($context);
         
         // render debug text
         $this->dbgText->attachPass($pipeline, $backbuffer, $deltaTime);
