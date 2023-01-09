@@ -4,12 +4,16 @@ namespace TowerDefense\Renderer;
 
 use GL\Geometry\ObjFileParser;
 use TowerDefense\Pass\TerrainPass;
+use VISU\ECS\EntitiesInterface;
 use VISU\Graphics\GLState;
+use VISU\Graphics\Rendering\Pass\GBufferGeometryPassInterface;
+use VISU\Graphics\Rendering\Pass\GBufferPassData;
+use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\Graphics\ShaderProgram;
 use VISU\Graphics\ShaderStage;
 
-class TerrainRenderer
+class TerrainRenderer implements GBufferGeometryPassInterface
 {
     private int $terrainVAO = 0;
     private int $terrainVBO = 0;
@@ -115,6 +119,17 @@ class TerrainRenderer
     public function attachPass(RenderPipeline $pipeline)
     {
         $pipeline->addPass(new TerrainPass(
+            gl: $this->gl,
+            shader: $this->terrainShader,
+            VAO: $this->terrainVAO,
+            VBO: $this->terrainVBO,
+            vertexCount: $this->vertexCount,
+        ));
+    }
+
+    public function renderToGBuffer(EntitiesInterface $entities, RenderContext $context, GBufferPassData $gbufferData) : void
+    {
+        $context->pipeline->addPass(new TerrainPass(
             gl: $this->gl,
             shader: $this->terrainShader,
             VAO: $this->terrainVAO,

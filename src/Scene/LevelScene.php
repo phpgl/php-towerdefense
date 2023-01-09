@@ -18,12 +18,12 @@ use VISU\Graphics\Rendering\Renderer\FullscreenTextureRenderer;
 use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\OS\Key;
 use VISU\System\VISUCameraSystem;
+use VISU\System\VISULowPolyRenderingSystem;
 
 class LevelScene extends BaseScene
 {
     private TerrainRenderer $terrainRenderer;
-    private FullscreenTextureRenderer $fullscreenRenderer;
-    private FullscreenDebugDepthRenderer $fullscreenDebugDepthRenderer;
+    private VISULowPolyRenderingSystem $renderingSystem;
     private VISUCameraSystem $cameraSystem;
 
     /**
@@ -36,8 +36,9 @@ class LevelScene extends BaseScene
         parent::__construct($container);
 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL());
-        $this->fullscreenRenderer = new FullscreenTextureRenderer($container->resolveGL());
-        $this->fullscreenDebugDepthRenderer = new FullscreenDebugDepthRenderer($container->resolveGL());
+        $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL());
+        $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
+
         $this->cameraSystem = new VISUCameraSystem(
             $this->container->resolveInput(), 
             $this->container->resolveVisuDispatcher()
@@ -96,17 +97,20 @@ class LevelScene extends BaseScene
     public function render(RenderContext $context) : void
     {
         $this->cameraSystem->render($this->entities, $context);
-        $this->cameraSystem->getActiveCamera($this->entities)->allowInterpolation = !$this->container->resolveInput()->isKeyPressed(Key::SPACE);
 
         $backbuffer = $context->data->get(BackbufferData::class);
 
-        $context->pipeline->addPass(new GBufferPass);
-        $gbuffer = $context->data->get(GBufferPassData::class);
+        $this->renderingSystem->setRenderTarget($backbuffer->target);
+        $this->renderingSystem->render($this->entities, $context);
 
-        $this->terrainRenderer->attachPass($context->pipeline);
 
-        $this->fullscreenRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->albedoTexture);
+        // $context->pipeline->addPass(new GBufferPass);
+        // $gbuffer = $context->data->get(GBufferPassData::class);
 
-        // $this->fullscreenDebugDepthRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->depthTexture);
+        // $this->terrainRenderer->attachPass($context->pipeline);
+
+        // $this->fullscreenRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->albedoTexture);
+
+        // // $this->fullscreenDebugDepthRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->depthTexture);
     }
 }
