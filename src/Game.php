@@ -65,6 +65,9 @@ class Game implements GameLoopDelegate
         // initialize the window
         $this->window->initailize($this->container->resolveGL());
 
+        // enable vsync by default
+        $this->window->setSwapInterval(1);
+
         // make the input the windows event handler
         $this->window->setEventHandler($this->container->resolveInput());
 

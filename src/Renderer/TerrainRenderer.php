@@ -71,7 +71,19 @@ class TerrainRenderer
 
         void main()
         {
-            fragment_color = vec4(v_normal, 1.0f);
+            vec3 basecolor = vec3(0.855, 0.851, 0.843);
+
+            // now darken the color based on the normal
+            vec4 albedo = vec4(basecolor * (0.5f + 0.5f * v_normal.y), 1.0f);
+
+            // basic phong lighting
+            vec3 lightDir = normalize(vec3(0.0f, 1.0f, 1.0f));
+            float diffuse = max(dot(v_normal, lightDir), 0.0f);
+
+            fragment_color = albedo * diffuse;
+            
+
+            //fragment_color = vec4(v_normal, 1.0f);
         }
         GLSL));
         $this->terrainShader->link();
