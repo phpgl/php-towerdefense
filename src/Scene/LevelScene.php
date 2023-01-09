@@ -3,28 +3,27 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
-use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
+use VISU\Component\VISULowPoly\DynamicRenderableModel;
+use VISU\Geo\Transform;
 use VISU\Graphics\Camera;
 use VISU\Graphics\CameraProjectionMode;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
-use VISU\Graphics\Rendering\Pass\GBufferPass;
-use VISU\Graphics\Rendering\Pass\GBufferPassData;
-use VISU\Graphics\Rendering\PipelineContainer;
-use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderContext;
-use VISU\Graphics\Rendering\Renderer\FullscreenDebugDepthRenderer;
-use VISU\Graphics\Rendering\Renderer\FullscreenTextureRenderer;
-use VISU\Graphics\Rendering\RenderPipeline;
-use VISU\OS\Key;
 use VISU\System\VISUCameraSystem;
-use VISU\System\VISULowPolyRenderingSystem;
+use VISU\System\VISULowPoly\LPObjLoader;
+use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
+use VISU\System\VISULowPoly\LPVertexBuffer;
 
 class LevelScene extends BaseScene
 {
     private TerrainRenderer $terrainRenderer;
     private VISULowPolyRenderingSystem $renderingSystem;
     private VISUCameraSystem $cameraSystem;
+
+    private LPVertexBuffer $objectVertexBuffer;
+    private LPObjLoader $objectLoader;
+    private array $loadedObjects = [];
 
     /**
      * Constructor
@@ -35,6 +34,12 @@ class LevelScene extends BaseScene
     {
         parent::__construct($container);
 
+        // load all space kit models
+        $this->objectVertexBuffer = new LPVertexBuffer($container->resolveGL());
+        $this->objectLoader = new LPObjLoader($container->resolveGL());
+        $this->loadedObjects = $this->objectLoader->loadAllInDirectory(VISU_PATH_RESOURCES . '/models/spacekit');
+
+        // prepare the rendering systems 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
@@ -62,11 +67,23 @@ class LevelScene extends BaseScene
     private function prepareScene()
     {
         $this->cameraSystem->register($this->entities);
+        $this->renderingSystem->register($this->entities);
 
         // create a camera
         $cameraEntity = $this->entities->create();
-        $this->entities->attach($cameraEntity, new Camera(CameraProjectionMode::perspective));
+        $camera = $this->entities->attach($cameraEntity, new Camera(CameraProjectionMode::perspective));
+        $camera->transform->position->y = 100;
+        $camera->transform->position->z = 50;
         $this->cameraSystem->setActiveCameraEntity($cameraEntity);
+
+        // create some random renderable objects
+        $someObject = $this->entities->create();
+        $renderable = $this->entities->attach($someObject, new DynamicRenderableModel);
+        $renderable->model = $this->loadedObjects['turret_double.obj']; // <- render the turret
+        $transform = $this->entities->attach($someObject, new Transform);
+        $transform->scale = $transform->scale * 100;
+        $transform->position->y = 50;
+        $transform->position->z = -50;
     }
 
     /**
@@ -102,15 +119,5 @@ class LevelScene extends BaseScene
 
         $this->renderingSystem->setRenderTarget($backbuffer->target);
         $this->renderingSystem->render($this->entities, $context);
-
-
-        // $context->pipeline->addPass(new GBufferPass);
-        // $gbuffer = $context->data->get(GBufferPassData::class);
-
-        // $this->terrainRenderer->attachPass($context->pipeline);
-
-        // $this->fullscreenRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->albedoTexture);
-
-        // // $this->fullscreenDebugDepthRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->depthTexture);
     }
 }

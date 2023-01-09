@@ -116,17 +116,6 @@ class TerrainRenderer implements GBufferGeometryPassInterface
         $this->vertexCount = $vertexData->size() / 6;
     }
 
-    public function attachPass(RenderPipeline $pipeline)
-    {
-        $pipeline->addPass(new TerrainPass(
-            gl: $this->gl,
-            shader: $this->terrainShader,
-            VAO: $this->terrainVAO,
-            VBO: $this->terrainVBO,
-            vertexCount: $this->vertexCount,
-        ));
-    }
-
     public function renderToGBuffer(EntitiesInterface $entities, RenderContext $context, GBufferPassData $gbufferData) : void
     {
         $context->pipeline->addPass(new TerrainPass(
