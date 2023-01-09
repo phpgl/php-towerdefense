@@ -48,6 +48,7 @@ class TerrainRenderer
         layout (location = 1) in vec3 a_normal;
 
         out vec3 v_normal;
+        out vec3 v_position;
 
         uniform mat4 projection;
         uniform mat4 view;
@@ -58,6 +59,7 @@ class TerrainRenderer
 
             mat4 model = mat4(1.0f);
 
+            v_position = vec3(model * vec4(a_position, 1.0f));
             gl_Position = projection * view * model * vec4(a_position, 1.0f);
         }
         GLSL));
@@ -65,9 +67,13 @@ class TerrainRenderer
         // also attach a simple fragment shader
         $this->terrainShader->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
         #version 330 core
-        out vec4 fragment_color;
+        
+        layout (location = 0) out vec3 gbuffer_position;
+        layout (location = 1) out vec3 gbuffer_normal;
+        layout (location = 2) out vec4 gbuffer_albedo;
 
         in vec3 v_normal;
+        in vec3 v_position;
 
         void main()
         {
@@ -80,7 +86,9 @@ class TerrainRenderer
             vec3 lightDir = normalize(vec3(0.0f, 1.0f, 1.0f));
             float diffuse = max(dot(v_normal, lightDir), 0.0f);
 
-            fragment_color = albedo * diffuse;
+            gbuffer_albedo = albedo * diffuse;
+            gbuffer_normal = v_normal;
+            gbuffer_position = v_position;
             
 
             //fragment_color = vec4(v_normal, 1.0f);

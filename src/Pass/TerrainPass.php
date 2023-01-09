@@ -5,6 +5,7 @@ namespace TowerDefense\Pass;
 use VISU\Graphics\GLState;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\CameraData;
+use VISU\Graphics\Rendering\Pass\GBufferPassData;
 use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderPass;
@@ -27,9 +28,9 @@ class TerrainPass extends RenderPass
      */
     public function setup(RenderPipeline $pipeline, PipelineContainer $data): void
     {
-        $backbuffer = $data->get(BackbufferData::class)->target;
+        $gbuffer = $data->get(GBufferPassData::class);
 
-        $pipeline->writes($this, $backbuffer);
+        $pipeline->writes($this, $gbuffer->renderTarget);
     }
 
     /**
@@ -38,9 +39,9 @@ class TerrainPass extends RenderPass
     public function execute(PipelineContainer $data, PipelineResources $resources): void
     {
         $cameraData = $data->get(CameraData::class);
-        $backbuffer = $data->get(BackbufferData::class)->target;
+        $gbuffer = $data->get(GBufferPassData::class);
 
-        $resources->activateRenderTarget($backbuffer);
+        $resources->activateRenderTarget($gbuffer->renderTarget);
 
         $this->shader->use();
         $this->shader->setUniformMatrix4f('projection', false, $cameraData->projection);

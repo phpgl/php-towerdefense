@@ -7,9 +7,14 @@ use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use VISU\Graphics\Camera;
 use VISU\Graphics\CameraProjectionMode;
+use VISU\Graphics\Rendering\Pass\BackbufferData;
+use VISU\Graphics\Rendering\Pass\GBufferPass;
+use VISU\Graphics\Rendering\Pass\GBufferPassData;
 use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\Graphics\Rendering\Renderer\FullscreenDebugDepthRenderer;
+use VISU\Graphics\Rendering\Renderer\FullscreenTextureRenderer;
 use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\OS\Key;
 use VISU\System\VISUCameraSystem;
@@ -17,6 +22,8 @@ use VISU\System\VISUCameraSystem;
 class LevelScene extends BaseScene
 {
     private TerrainRenderer $terrainRenderer;
+    private FullscreenTextureRenderer $fullscreenRenderer;
+    private FullscreenDebugDepthRenderer $fullscreenDebugDepthRenderer;
     private VISUCameraSystem $cameraSystem;
 
     /**
@@ -29,6 +36,8 @@ class LevelScene extends BaseScene
         parent::__construct($container);
 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL());
+        $this->fullscreenRenderer = new FullscreenTextureRenderer($container->resolveGL());
+        $this->fullscreenDebugDepthRenderer = new FullscreenDebugDepthRenderer($container->resolveGL());
         $this->cameraSystem = new VISUCameraSystem(
             $this->container->resolveInput(), 
             $this->container->resolveVisuDispatcher()
@@ -77,10 +86,6 @@ class LevelScene extends BaseScene
     public function update() : void
     {
         $this->cameraSystem->update($this->entities);
-
-        $this->cameraSystem->getActiveCamera($this->entities)->allowInterpolation = !$this->container->resolveInput()->isKeyPressed(Key::SPACE);
-
-        DebugTextOverlay::debugString('Allow interpolation: ' . ($this->cameraSystem->getActiveCamera($this->entities)->allowInterpolation ? 'true' : 'false'));
     }
 
     /**
@@ -91,7 +96,17 @@ class LevelScene extends BaseScene
     public function render(RenderContext $context) : void
     {
         $this->cameraSystem->render($this->entities, $context);
+        $this->cameraSystem->getActiveCamera($this->entities)->allowInterpolation = !$this->container->resolveInput()->isKeyPressed(Key::SPACE);
+
+        $backbuffer = $context->data->get(BackbufferData::class);
+
+        $context->pipeline->addPass(new GBufferPass);
+        $gbuffer = $context->data->get(GBufferPassData::class);
 
         $this->terrainRenderer->attachPass($context->pipeline);
+
+        $this->fullscreenRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->albedoTexture);
+
+        // $this->fullscreenDebugDepthRenderer->attachPass($context->pipeline, $backbuffer->target, $gbuffer->depthTexture);
     }
 }
