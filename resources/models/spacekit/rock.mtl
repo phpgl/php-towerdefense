@@ -1,0 +1,8 @@
+# Created by Kenney (www.kenney.nl)
+
+newmtl rockTrack
+Kd 0.9811321 0.5809683 0.4489142
+
+newmtl rock
+Kd 0.9098039 0.5176471 0.3882353
+

@@ -1,0 +1,8 @@
+# Created by Kenney (www.kenney.nl)
+
+newmtl rock
+Kd 0.9098039 0.5176471 0.3882353
+
+newmtl rockDark
+Kd 0.6980392 0.372549 0.2627451
+
