@@ -3,6 +3,7 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use GL\Math\Vec3;
 use TowerDefense\Renderer\TerrainRenderer;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\Geo\Transform;
@@ -119,5 +120,10 @@ class LevelScene extends BaseScene
 
         $this->renderingSystem->setRenderTarget($backbuffer->target);
         $this->renderingSystem->render($this->entities, $context);
+
+        \VISU\D3D::ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0), \VISU\D3D::$colorGreen, 100);
+        \VISU\D3D::cross(new Vec3(0, 0, 0), \VISU\D3D::$colorRed);
+        \VISU\D3D::aabb(new Vec3(0, 0, 0), new Vec3(10, 10, 10), new Vec3(60, 80, 50), \VISU\D3D::$colorMagenta);
+
     }
 }

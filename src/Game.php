@@ -12,6 +12,7 @@ use VISU\Graphics\Rendering\Pass\ClearPass;
 use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\Graphics\Rendering\Renderer\Debug3DRenderer;
 use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\OS\Key;
 use VISU\OS\Window;
@@ -45,6 +46,11 @@ class Game implements GameLoopDelegate
     private DebugTextOverlay $dbgText;
 
     /**
+     * Debug 3D renderer
+     */
+    private Debug3DRenderer $dbg3D;
+
+    /**
      * Pipeline resource manager
      */
     private PipelineResources $pipelineResources;
@@ -74,8 +80,10 @@ class Game implements GameLoopDelegate
         // initialize the pipeline resources
         $this->pipelineResources = new PipelineResources($container->resolveGL());
 
-        // initialize the debug text renderer
+        // initialize the debug renderers
         $this->dbgText = new DebugTextOverlay($container);
+        $this->dbg3D = new Debug3DRenderer($container->resolveGL());
+        Debug3DRenderer::setGlobalInstance($this->dbg3D);
 
         // load an inital scene
         $this->currentScene = new LevelScene($container);
@@ -152,6 +160,7 @@ class Game implements GameLoopDelegate
         $this->currentScene->render($context);
         
         // render debug text
+        $this->dbg3D->attachPass($pipeline, $backbuffer);
         $this->dbgText->attachPass($pipeline, $backbuffer, $deltaTime);
 
         // execute the pipeline
