@@ -5,6 +5,7 @@ namespace TowerDefense\Scene;
 use GameContainer;
 use GL\Math\Vec3;
 use TowerDefense\Renderer\TerrainRenderer;
+use TowerDefense\System\AircraftSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\Geo\Transform;
 use VISU\Graphics\Camera;
@@ -21,6 +22,8 @@ class LevelScene extends BaseScene
     private TerrainRenderer $terrainRenderer;
     private VISULowPolyRenderingSystem $renderingSystem;
     private VISUCameraSystem $cameraSystem;
+
+    private AircraftSystem $aircraftSystem;
 
     private LPVertexBuffer $objectVertexBuffer;
     private LPObjLoader $objectLoader;
@@ -40,17 +43,19 @@ class LevelScene extends BaseScene
         $this->objectLoader = new LPObjLoader($container->resolveGL());
         $this->loadedObjects = $this->objectLoader->loadAllInDirectory(VISU_PATH_RESOURCES . '/models/spacekit');
 
-        // prepare the rendering systems 
+        // prepare the rendering systems
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
 
         $this->cameraSystem = new VISUCameraSystem(
-            $this->container->resolveInput(), 
+            $this->container->resolveInput(),
             $this->container->resolveVisuDispatcher()
         );
 
-        // prepare the scene 
+        $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
+
+        // prepare the scene
         $this->prepareScene();
     }
 
@@ -69,12 +74,13 @@ class LevelScene extends BaseScene
     {
         $this->cameraSystem->register($this->entities);
         $this->renderingSystem->register($this->entities);
+        $this->aircraftSystem->register($this->entities);
 
         // create a camera
         $cameraEntity = $this->entities->create();
         $camera = $this->entities->attach($cameraEntity, new Camera(CameraProjectionMode::perspective));
-        $camera->transform->position->y = 100;
-        $camera->transform->position->z = 50;
+        $camera->transform->position->y = 250;
+        $camera->transform->position->z = 500;
         $this->cameraSystem->setActiveCameraEntity($cameraEntity);
 
         // create some random renderable objects
@@ -89,8 +95,8 @@ class LevelScene extends BaseScene
 
     /**
      * Loads resources required for the scene
-     * 
-     * @return void 
+     *
+     * @return void
      */
     public function load() : void
     {
@@ -99,21 +105,23 @@ class LevelScene extends BaseScene
 
     /**
      * Updates the scene state
-     * 
-     * @return void 
+     *
+     * @return void
      */
     public function update() : void
     {
         $this->cameraSystem->update($this->entities);
+        $this->aircraftSystem->update($this->entities);
     }
 
     /**
      * Renders the scene
-     * 
+     *
      * @param RenderContext $context
      */
     public function render(RenderContext $context) : void
     {
+        $this->aircraftSystem->render($this->entities, $context);
         $this->cameraSystem->render($this->entities, $context);
 
         $backbuffer = $context->data->get(BackbufferData::class);
