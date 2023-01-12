@@ -3,10 +3,12 @@
 namespace TowerDefense\System;
 
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
+use VISU\ECS\EntitiesInterface;
+use VISU\ECS\SystemInterface;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
 
-class AircraftSystem implements \VISU\ECS\SystemInterface
+class AircraftSystem implements SystemInterface
 {
     private array $loadedObjects;
 
@@ -26,7 +28,7 @@ class AircraftSystem implements \VISU\ECS\SystemInterface
     /**
      * @inheritDoc
      */
-    public function register(\VISU\ECS\EntitiesInterface $entities): void
+    public function register(EntitiesInterface $entities): void
     {
         // create some random renderable objects
         $this->aircraft = $entities->create();
@@ -42,7 +44,7 @@ class AircraftSystem implements \VISU\ECS\SystemInterface
     /**
      * @inheritDoc
      */
-    public function unregister(\VISU\ECS\EntitiesInterface $entities): void
+    public function unregister(EntitiesInterface $entities): void
     {
         $entities->detach($this->aircraft, DynamicRenderableModel::class);
         $entities->detach($this->aircraft, Transform::class);
@@ -52,7 +54,7 @@ class AircraftSystem implements \VISU\ECS\SystemInterface
     /**
      * @inheritDoc
      */
-    public function update(\VISU\ECS\EntitiesInterface $entities): void
+    public function update(EntitiesInterface $entities): void
     {
         $transform = $entities->get($this->aircraft, Transform::class);
         $transform->moveBackward(5.0); // <- move the aircraft forward, seems that the model itself is not correctly rotated? so forward is actually backward?!
@@ -61,7 +63,7 @@ class AircraftSystem implements \VISU\ECS\SystemInterface
     /**
      * @inheritDoc
      */
-    public function render(\VISU\ECS\EntitiesInterface $entities, RenderContext $context): void
+    public function render(EntitiesInterface $entities, RenderContext $context): void
     {
         // TODO: Implement render() method.
     }
