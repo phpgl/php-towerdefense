@@ -2,6 +2,11 @@
 
 namespace TowerDefense\System;
 
+use GL\Math\GLM;
+use GL\Math\Quat;
+use GL\Math\Vec3;
+use TowerDefense\Component\PositionComponent;
+use TowerDefense\Component\OrientationComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
@@ -30,6 +35,10 @@ class AircraftSystem implements SystemInterface
      */
     public function register(EntitiesInterface $entities): void
     {
+        // register components
+        $entities->registerComponent(PositionComponent::class);
+        $entities->registerComponent(OrientationComponent::class);
+
         // create some random renderable objects
         $this->aircraft = $entities->create();
         $renderable = $entities->attach($this->aircraft, new DynamicRenderableModel);
@@ -39,6 +48,16 @@ class AircraftSystem implements SystemInterface
         $transform->position->y = 250;
         $transform->position->x = 250;
         $transform->position->z = -1000;
+
+        $targetPosition = $entities->attach($this->aircraft, new PositionComponent);
+        $targetPosition->targetPosition = $transform->position;
+
+        $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
+        $targetPosition->targetPosition += $dir * 1000.0;
+        $targetPosition->movingForward = true;
+
+        $targetOrientation = $entities->attach($this->aircraft, new OrientationComponent);
+        $targetOrientation->targetOrientation = $transform->orientation;
     }
 
     /**
@@ -46,6 +65,8 @@ class AircraftSystem implements SystemInterface
      */
     public function unregister(EntitiesInterface $entities): void
     {
+        $entities->detach($this->aircraft, PositionComponent::class);
+        $entities->detach($this->aircraft, OrientationComponent::class);
         $entities->detach($this->aircraft, DynamicRenderableModel::class);
         $entities->detach($this->aircraft, Transform::class);
         $entities->destory($this->aircraft);
@@ -57,7 +78,17 @@ class AircraftSystem implements SystemInterface
     public function update(EntitiesInterface $entities): void
     {
         $transform = $entities->get($this->aircraft, Transform::class);
-        $transform->moveBackward(5.0); // <- move the aircraft forward, seems that the model itself is not correctly rotated? so forward is actually backward?!
+        $targetPosition = $entities->get($this->aircraft, PositionComponent::class);
+        $distance = $transform->position->distanceTo($targetPosition->targetPosition);
+        if ($distance > 5) {
+            $transform->moveBackward(5.0);
+        } else {
+            $targetPosition->movingForward = !$targetPosition->movingForward;
+            $transform->orientation->rotate(GLM::radians(180.0), new Vec3(0.0, 1.0, 0.0));
+            $targetPosition->targetPosition = $transform->position;
+            $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
+            $targetPosition->targetPosition += $dir * 1000.0;
+        }
     }
 
     /**
