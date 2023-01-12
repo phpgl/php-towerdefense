@@ -85,6 +85,16 @@ class LevelScene extends BaseScene
         $transform->scale = $transform->scale * 100;
         $transform->position->y = 50;
         $transform->position->z = -50;
+
+        // create a sattelie dish "satelliteDish_large.obj"
+        $dishObject = $this->entities->create();
+        $renderable = $this->entities->attach($dishObject, new DynamicRenderableModel);
+        $renderable->model = $this->loadedObjects['satelliteDish_large.obj'];
+        $transform = $this->entities->attach($dishObject, new Transform);
+        $transform->scale = $transform->scale * 100;
+        $transform->position->y = 50;
+        $transform->position->x = 100;
+        $transform->position->z = -50;
     }
 
     /**
