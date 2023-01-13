@@ -46,15 +46,14 @@ class AircraftSystem implements SystemInterface
         $transform = $entities->attach($this->aircraft, new Transform);
         $transform->scale = $transform->scale * 100;
         $transform->position->y = 250;
-        $transform->position->x = 250;
-        $transform->position->z = -1000;
+        $transform->position->x = 500;
+        $transform->position->z = -550;
+        $transform->orientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
 
         $targetPosition = $entities->attach($this->aircraft, new PositionComponent);
         $targetPosition->targetPosition = $transform->position;
-
         $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
         $targetPosition->targetPosition += $dir * 1000.0;
-        $targetPosition->movingForward = true;
 
         $targetOrientation = $entities->attach($this->aircraft, new OrientationComponent);
         $targetOrientation->targetOrientation = $transform->orientation;
@@ -80,15 +79,13 @@ class AircraftSystem implements SystemInterface
         $transform = $entities->get($this->aircraft, Transform::class);
         $targetPosition = $entities->get($this->aircraft, PositionComponent::class);
         $distance = $transform->position->distanceTo($targetPosition->targetPosition);
-        if ($distance > 5) {
-            $transform->moveBackward(5.0);
-        } else {
-            $targetPosition->movingForward = !$targetPosition->movingForward;
+        if ($distance <= 5) {
             $transform->orientation->rotate(GLM::radians(180.0), new Vec3(0.0, 1.0, 0.0));
             $targetPosition->targetPosition = $transform->position;
             $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
             $targetPosition->targetPosition += $dir * 1000.0;
         }
+        $transform->moveBackward(5.0);
     }
 
     /**
