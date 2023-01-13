@@ -52,8 +52,11 @@ class AircraftSystem implements SystemInterface
 
         $targetPosition = $entities->attach($this->aircraft, new PositionComponent);
         $targetPosition->targetPosition = $transform->position;
+        $targetPosition->startPosition = $transform->position;
         $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
         $targetPosition->targetPosition += $dir * 1000.0;
+        $dir = Quat::multiplyVec3($transform->orientation, $transform::worldDown());
+        $targetPosition->targetPosition += $dir * 100.0;
 
         $targetOrientation = $entities->attach($this->aircraft, new OrientationComponent);
         $targetOrientation->targetOrientation = $transform->orientation;
@@ -78,20 +81,32 @@ class AircraftSystem implements SystemInterface
     {
         $transform = $entities->get($this->aircraft, Transform::class);
         $targetPosition = $entities->get($this->aircraft, PositionComponent::class);
-        $distance = $transform->position->distanceTo($targetPosition->targetPosition);
-        if ($distance <= 0) {
+        $travelProgress = 1.0 - (abs($transform->position->x - $targetPosition->targetPosition->x) / abs($targetPosition->targetPosition->x - $targetPosition->startPosition->x));
+        if ($travelProgress >= 1) {
+            $goUp = true;
+            if ($targetPosition->startPosition->y < $targetPosition->targetPosition->y) {
+                $goUp = false;
+            }
+
             $transform->orientation->rotate(GLM::radians(180.0), new Vec3(0.0, 1.0, 0.0));
             $targetPosition->targetPosition = $transform->position;
+            $targetPosition->startPosition = $transform->position;
             $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
             $targetPosition->targetPosition += $dir * 1000.0;
-            $distance = $transform->position->distanceTo($targetPosition->targetPosition);
+
+            if ($goUp) {
+                $dir = Quat::multiplyVec3($transform->orientation, $transform::worldUp());
+                $targetPosition->targetPosition += $dir * 100.0;
+            } else {
+                $dir = Quat::multiplyVec3($transform->orientation, $transform::worldDown());
+                $targetPosition->targetPosition += $dir * 100.0;
+            }
+
+            $travelProgress = 0.0;
         }
-        $move = 5.0;
-        if ($move > $distance) {
-            $transform->setPosition($targetPosition->targetPosition);
-        } else {
-            $transform->moveBackward($move);
-        }
+        $newTravelProgress = min($travelProgress + 0.005, 1.0);
+        $newPosition = Vec3::lerp($targetPosition->startPosition, $targetPosition->targetPosition, $newTravelProgress);
+        $transform->setPosition($newPosition);
     }
 
     /**
