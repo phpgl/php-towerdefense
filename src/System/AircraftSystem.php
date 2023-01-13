@@ -79,13 +79,19 @@ class AircraftSystem implements SystemInterface
         $transform = $entities->get($this->aircraft, Transform::class);
         $targetPosition = $entities->get($this->aircraft, PositionComponent::class);
         $distance = $transform->position->distanceTo($targetPosition->targetPosition);
-        if ($distance <= 5) {
+        if ($distance <= 0) {
             $transform->orientation->rotate(GLM::radians(180.0), new Vec3(0.0, 1.0, 0.0));
             $targetPosition->targetPosition = $transform->position;
             $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
             $targetPosition->targetPosition += $dir * 1000.0;
+            $distance = $transform->position->distanceTo($targetPosition->targetPosition);
         }
-        $transform->moveBackward(5.0);
+        $move = 5.0;
+        if ($move > $distance) {
+            $transform->setPosition($targetPosition->targetPosition);
+        } else {
+            $transform->moveBackward($move);
+        }
     }
 
     /**
