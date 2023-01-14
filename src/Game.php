@@ -14,7 +14,6 @@ use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\Renderer\Debug3DRenderer;
 use VISU\Graphics\Rendering\RenderPipeline;
-use VISU\OS\Key;
 use VISU\OS\Window;
 use VISU\Runtime\GameLoopDelegate;
 
@@ -86,7 +85,7 @@ class Game implements GameLoopDelegate
         Debug3DRenderer::setGlobalInstance($this->dbg3D);
 
         // load an inital scene
-        $this->currentScene = new LevelScene($container, $this->pipelineResources);
+        $this->currentScene = new LevelScene($container);
     }
 
     /**
