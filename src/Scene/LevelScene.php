@@ -4,6 +4,7 @@ namespace TowerDefense\Scene;
 
 use GameContainer;
 use GL\Math\Vec3;
+use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\Picker\DevEntityPicker;
@@ -15,6 +16,8 @@ use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\CameraData;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\RenderTarget;
+use VISU\OS\Key;
+use VISU\Signals\Input\KeySignal;
 use VISU\System\VISUCameraSystem;
 use VISU\System\VISULowPoly\LPObjLoader;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
@@ -34,6 +37,12 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private DevEntityPicker $devPicker;
     private RenderTarget $devPickerRenderTarget;
 
+
+    /**
+     * Function ID for keyboard handler
+     */
+    private int $keyboardHandlerId = 0;
+
     /**
      * Constructor
      */
@@ -42,6 +51,10 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     )
     {
         parent::__construct($container);
+
+        // register key handler for debugging 
+        // usally a system should handle this but this is temporary
+        $this->keyboardHandlerId = $this->container->resolveVisuDispatcher()->register('input.key', [$this, 'handleKeyboardEvent']);
 
         // load all space kit models
         $this->objectLoader = new LPObjLoader($container->resolveGL());
@@ -101,6 +114,9 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // unregister systems
         $this->cameraSystem->unregister($this->entities);
         $this->renderingSystem->unregister($this->entities);
+
+        // unbind event handlers
+        $this->container->resolveVisuDispatcher()->unregister('input.key', $this->keyboardHandlerId);
     }
 
     /**
@@ -173,6 +189,8 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function render(RenderContext $context) : void
     {
+        DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, NORM=2, DEPTH=3, ALBEDO=4");
+
         $this->cameraSystem->render($this->entities, $context);
 
         $backbuffer = $context->data->get(BackbufferData::class);
@@ -184,6 +202,28 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         \VISU\D3D::cross(new Vec3(0, 0, 0), \VISU\D3D::$colorRed);
         \VISU\D3D::aabb(new Vec3(0, 0, 0), new Vec3(10, 10, 10), new Vec3(60, 80, 50), \VISU\D3D::$colorMagenta);
 
+    }
+
+    /**
+     * Keyboard event handler
+     */
+    public function handleKeyboardEvent(KeySignal $signal) : void
+    {
+        if ($signal->mods !== Key::MOD_SHIFT && $signal->action == GLFW_PRESS) {
+            return;
+        }
+
+        if ($signal->key === KEY::NUM_0) {
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_NONE;
+        } elseif ($signal->key === KEY::NUM_1) {
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_POSITION;
+        } elseif ($signal->key === KEY::NUM_2) {
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_NORMALS;
+        } elseif ($signal->key === KEY::NUM_3) {
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_DEPTH;
+        } elseif ($signal->key === KEY::NUM_4) {
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_ALBEDO;
+        }
     }
 
     /**
