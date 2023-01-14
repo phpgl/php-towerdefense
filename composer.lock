@@ -117,12 +117,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpgl/ide-stubs.git",
-                "reference": "d5d7957204bf4e3d859e3e19c4da4cd343226a63"
+                "reference": "eeab6f607df9b6e5265fbfabfb7dd5e61db2c8b9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgl/ide-stubs/zipball/d5d7957204bf4e3d859e3e19c4da4cd343226a63",
-                "reference": "d5d7957204bf4e3d859e3e19c4da4cd343226a63",
+                "url": "https://api.github.com/repos/phpgl/ide-stubs/zipball/eeab6f607df9b6e5265fbfabfb7dd5e61db2c8b9",
+                "reference": "eeab6f607df9b6e5265fbfabfb7dd5e61db2c8b9",
                 "shasum": ""
             },
             "require": {
@@ -160,7 +160,7 @@
                 "issues": "https://github.com/phpgl/ide-stubs/issues",
                 "source": "https://github.com/phpgl/ide-stubs/tree/main"
             },
-            "time": "2023-01-07T20:44:23+00:00"
+            "time": "2023-01-14T18:20:56+00:00"
         },
         {
             "name": "phpgl/visu",
@@ -168,7 +168,7 @@
             "dist": {
                 "type": "path",
                 "url": "../visu",
-                "reference": "5023dfb4a5226b6c89bd419104b8597f655bfacd"
+                "reference": "0f74bc1acd2e4839c179c419ba3151d6c2365cca"
             },
             "require": {
                 "clancats/container": "^1.3",
@@ -327,5 +327,5 @@
     "prefer-lowest": false,
     "platform": [],
     "platform-dev": [],
-    "plugin-api-version": "2.2.0"
+    "plugin-api-version": "2.1.0"
 }
