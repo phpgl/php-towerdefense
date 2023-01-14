@@ -6,11 +6,19 @@ use GameContainer;
 use GL\Math\Vec3;
 use TowerDefense\Renderer\TerrainRenderer;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
+use VISU\ECS\Picker\DevEntityPicker;
 use VISU\Geo\Transform;
 use VISU\Graphics\Camera;
 use VISU\Graphics\CameraProjectionMode;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
+use VISU\Graphics\Rendering\Pass\CallbackPass;
+use VISU\Graphics\Rendering\PipelineContainer;
+use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\Graphics\Rendering\RenderPass;
+use VISU\Graphics\Rendering\RenderPipeline;
+use VISU\OS\Key;
+use VISU\Signals\Input\MouseClickSignal;
 use VISU\System\VISUCameraSystem;
 use VISU\System\VISULowPoly\LPObjLoader;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
@@ -27,10 +35,27 @@ class LevelScene extends BaseScene
     private array $loadedObjects = [];
 
     /**
+     * Dev entity picker, for debug and level editor
+     */
+    private DevEntityPicker $devPicker;
+
+    /**
+     * If enabled click events will trigger the entity picker 
+     * and dispatch entity.selected events.
+     */
+    protected bool $allowDevEntityPicker = true;
+
+    /**
+     * Function id for "handleMouseClick" handler
+     */
+    private int $handleMouseClickId;
+
+    /**
      * Constructor
      */
     public function __construct(
         protected GameContainer $container,
+        protected PipelineResources $pipelineResources,
     )
     {
         parent::__construct($container);
@@ -50,8 +75,21 @@ class LevelScene extends BaseScene
             $this->container->resolveVisuDispatcher()
         );
 
+        $this->devPicker = new DevEntityPicker($this->container->resolveGL(), $this->pipelineResources);
+
+        // register some input handlers
+        $this->handleMouseClickId = $this->container->resolveVisuDispatcher()->register('input.mouse_click', [$this, 'handleMouseClick']);
+
         // prepare the scene 
         $this->prepareScene();
+    }
+
+    /**
+     * Destructor
+     */
+    public function __destruct()
+    {
+        $this->container->resolveVisuDispatcher()->unregister('input.mouse_click', $this->handleMouseClickId);
     }
 
     /**
@@ -115,6 +153,29 @@ class LevelScene extends BaseScene
     public function update() : void
     {
         $this->cameraSystem->update($this->entities);
+    }
+
+    /**
+     * Handles mouse click events
+     */
+    public function handleMouseClick(MouseClickSignal $signal)
+    {
+        if ($this->allowDevEntityPicker) 
+        {   
+            $windowRenderTarget = $this->container->resolveWindowMain()->getRenderTarget();
+
+            $cameraData = $this->cameraSystem->getCameraData(
+                $this->entities,
+                $windowRenderTarget,
+                0
+            );
+
+            $systems = [
+                $this->renderingSystem,
+            ];
+            
+            $this->devPicker->pickEntity($this->entities, $windowRenderTarget, $cameraData, $systems, (int) $signal->position->x, (int) $signal->position->y);
+        }
     }
 
     /**

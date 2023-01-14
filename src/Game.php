@@ -86,7 +86,7 @@ class Game implements GameLoopDelegate
         Debug3DRenderer::setGlobalInstance($this->dbg3D);
 
         // load an inital scene
-        $this->currentScene = new LevelScene($container);
+        $this->currentScene = new LevelScene($container, $this->pipelineResources);
     }
 
     /**
