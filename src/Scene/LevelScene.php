@@ -7,17 +7,20 @@ use GL\Math\Vec3;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
+use VISU\ECS\Picker\DevEntityPicker;
+use VISU\ECS\Picker\DevEntityPickerDelegate;
 use VISU\Geo\Transform;
 use VISU\Graphics\Camera;
 use VISU\Graphics\CameraProjectionMode;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
+use VISU\Graphics\Rendering\Pass\CameraData;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\Graphics\RenderTarget;
 use VISU\System\VISUCameraSystem;
 use VISU\System\VISULowPoly\LPObjLoader;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
-use VISU\System\VISULowPoly\LPVertexBuffer;
 
-class LevelScene extends BaseScene
+class LevelScene extends BaseScene implements DevEntityPickerDelegate
 {
     private TerrainRenderer $terrainRenderer;
     private VISULowPolyRenderingSystem $renderingSystem;
@@ -25,9 +28,14 @@ class LevelScene extends BaseScene
 
     private AircraftSystem $aircraftSystem;
 
-    private LPVertexBuffer $objectVertexBuffer;
     private LPObjLoader $objectLoader;
     private array $loadedObjects = [];
+
+    /**
+     * Dev entity picker, for debug and level editor
+     */
+    private DevEntityPicker $devPicker;
+    private RenderTarget $devPickerRenderTarget;
 
     /**
      * Constructor
@@ -39,7 +47,6 @@ class LevelScene extends BaseScene
         parent::__construct($container);
 
         // load all space kit models
-        $this->objectVertexBuffer = new LPVertexBuffer($container->resolveGL());
         $this->objectLoader = new LPObjLoader($container->resolveGL());
         $this->loadedObjects = $this->objectLoader->loadAllInDirectory(VISU_PATH_RESOURCES . '/models/spacekit');
 
@@ -56,7 +63,48 @@ class LevelScene extends BaseScene
         $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
 
         // prepare the scene
+        $this->constructDevEntityPicker();
         $this->prepareScene();
+    }
+
+    /**
+     * Constrcuts the DEV entity picker
+     */
+    public function constructDevEntityPicker() : void
+    {
+        // right now using the window framebuffer as render target
+        // for entity picking, we need to test if is more efficient
+        // to use a separate framebuffer for this, that could have a much 
+        // lower resolution
+        $this->devPickerRenderTarget = $this->container->resolveWindowMain()->getRenderTarget();
+
+        // not to happy with the dependency on the rendering system here
+        // but I tried a few architectures now and did not want to waste 
+        // more time on this...
+        $this->devPicker = new DevEntityPicker(
+            $this,
+            $this->entities, 
+            $this->container->resolveVisuDispatcher(),
+            $this->devPickerRenderTarget,
+            [
+                $this->renderingSystem,
+            ]
+        );
+
+        // we initate a dev entity picker by default but keep it disabled
+        // unitl explicity requetsed otherwise
+        $this->devPicker->enabled = true;
+    }
+
+
+    /**
+     * Destructor
+     */
+    public function __destruct()
+    {
+        // unregister systems
+        $this->cameraSystem->unregister($this->entities);
+        $this->renderingSystem->unregister($this->entities);
     }
 
     /**
@@ -90,6 +138,16 @@ class LevelScene extends BaseScene
         $transform = $this->entities->attach($someObject, new Transform);
         $transform->scale = $transform->scale * 100;
         $transform->position->y = 50;
+        $transform->position->z = -50;
+
+        // create a sattelie dish "satelliteDish_large.obj"
+        $dishObject = $this->entities->create();
+        $renderable = $this->entities->attach($dishObject, new DynamicRenderableModel);
+        $renderable->model = $this->loadedObjects['satelliteDish_large.obj'];
+        $transform = $this->entities->attach($dishObject, new Transform);
+        $transform->scale = $transform->scale * 100;
+        $transform->position->y = 50;
+        $transform->position->x = 100;
         $transform->position->z = -50;
     }
 
@@ -133,5 +191,31 @@ class LevelScene extends BaseScene
         \VISU\D3D::cross(new Vec3(0, 0, 0), \VISU\D3D::$colorRed);
         \VISU\D3D::aabb(new Vec3(0, 0, 0), new Vec3(10, 10, 10), new Vec3(60, 80, 50), \VISU\D3D::$colorMagenta);
 
+    }
+
+    /**
+     * Called when the dev entity picker has selected an entity
+     * 
+     * @param int $entityId 
+     * @return void 
+     */
+    public function devEntityPickerDidSelectEntity(int $entityId): void
+    {
+        var_dump($entityId);
+    }
+
+    /**
+     * Called when the dev entity picker is about to initate a selection and requires 
+     * the delegate to return the current camera data
+     * 
+     * @return CameraData
+     */
+    public function devEntityPickerRequestsCameraData(): CameraData
+    {
+        return $this->cameraSystem->getCameraData(
+            $this->entities,
+            $this->devPickerRenderTarget,
+            0
+        );
     }
 }
