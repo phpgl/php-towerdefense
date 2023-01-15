@@ -61,7 +61,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->loadedObjects = $this->objectLoader->loadAllInDirectory(VISU_PATH_RESOURCES . '/models/spacekit');
 
         // prepare the rendering systems 
-        $this->terrainRenderer = new TerrainRenderer($container->resolveGL());
+        $this->terrainRenderer = new TerrainRenderer($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
 
