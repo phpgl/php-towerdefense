@@ -168,7 +168,7 @@
             "dist": {
                 "type": "path",
                 "url": "../visu",
-                "reference": "0f74bc1acd2e4839c179c419ba3151d6c2365cca"
+                "reference": "4a119cff01b4c5af8a19613a7f4d31a7327505ea"
             },
             "require": {
                 "clancats/container": "^1.3",

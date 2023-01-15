@@ -14,6 +14,7 @@ use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\Renderer\Debug3DRenderer;
 use VISU\Graphics\Rendering\RenderPipeline;
+use VISU\Graphics\ShaderProgram;
 use VISU\OS\Window;
 use VISU\Runtime\GameLoopDelegate;
 
@@ -78,6 +79,11 @@ class Game implements GameLoopDelegate
 
         // initialize the pipeline resources
         $this->pipelineResources = new PipelineResources($container->resolveGL());
+
+        // preload all shaders
+        $container->resolveShaders()->loadAll(function($name, ShaderProgram $shader) {
+            echo "[SHADER LOADED] {$name} -> {$shader->id}\n";
+        });
 
         // initialize the debug renderers
         $this->dbgText = new DebugTextOverlay($container);

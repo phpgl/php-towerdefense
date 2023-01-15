@@ -28,3 +28,11 @@
  * Event handling 
  */
 @input: VISU\OS\Input(@window.main, @visu.dispatcher)
+
+/**
+ * Shader storage 
+ */
+@shaders: VISU\Graphics\ShaderCollection(@GL, :visu.path.resources.shader)
+    - enableVISUIncludes()
+    - addVISUShaders()
+    - scanShaderDirectory(:visu.path.resources.shader)
