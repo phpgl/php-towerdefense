@@ -62,7 +62,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         // prepare the rendering systems 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL());
-        $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL());
+        $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
 
         $this->cameraSystem = new VISUCameraSystem(
