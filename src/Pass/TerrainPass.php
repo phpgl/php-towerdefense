@@ -51,7 +51,7 @@ class TerrainPass extends RenderPass
         $this->gl->bindVertexArrayBuffer($this->VBO);
 
         glEnable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
 
         glDrawArrays(GL_TRIANGLES, 0, $this->vertexCount);
     }

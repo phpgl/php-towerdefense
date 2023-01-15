@@ -168,7 +168,7 @@
             "dist": {
                 "type": "path",
                 "url": "../visu",
-                "reference": "4a119cff01b4c5af8a19613a7f4d31a7327505ea"
+                "reference": "3349e67be0951ad3209873b1423bd4cd2d8ac5d5"
             },
             "require": {
                 "clancats/container": "^1.3",
@@ -327,5 +327,5 @@
     "prefer-lowest": false,
     "platform": [],
     "platform-dev": [],
-    "plugin-api-version": "2.1.0"
+    "plugin-api-version": "2.2.0"
 }
