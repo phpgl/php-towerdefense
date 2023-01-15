@@ -86,16 +86,17 @@ class TerrainRenderer implements GBufferGeometryPassInterface
             // now darken the color based on the normal
             vec4 albedo = vec4(basecolor * (0.5f + 0.5f * v_normal.y), 1.0f);
 
-            // basic phong lighting
-            vec3 lightDir = normalize(vec3(0.0f, 1.0f, 1.0f));
-            float diffuse = max(dot(v_normal, lightDir), 0.0f);
+            // // basic phong lighting
+            // vec3 lightDir = normalize(vec3(0.0f, 1.0f, 1.0f));
+            // float diffuse = max(dot(v_normal, lightDir), 0.0f);
 
-            gbuffer_albedo = albedo * diffuse;
+            // gbuffer_albedo = albedo * diffuse;
+            gbuffer_albedo = albedo;
             gbuffer_normal = v_normal;
             gbuffer_position = v_position;
             
 
-            //fragment_color = vec4(v_normal, 1.0f);
+            // //fragment_color = vec4(v_normal, 1.0f);
         }
         GLSL));
         $this->terrainShader->link();
