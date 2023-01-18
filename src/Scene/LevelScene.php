@@ -195,7 +195,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function render(RenderContext $context) : void
     {
-        DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, NORM=2, DEPTH=3, ALBEDO=4");
+        DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, VPOS=2, NORM=3, DEPTH=4, ALBEDO=5");
 
         $this->aircraftSystem->render($this->entities, $context);
 
@@ -226,12 +226,17 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         } elseif ($signal->key === KEY::NUM_1) {
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_POSITION;
         } elseif ($signal->key === KEY::NUM_2) {
-            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_NORMALS;
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_VIEW_POSITION;
         } elseif ($signal->key === KEY::NUM_3) {
-            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_DEPTH;
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_NORMALS;
         } elseif ($signal->key === KEY::NUM_4) {
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_DEPTH;
+        } elseif ($signal->key === KEY::NUM_5) {
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_ALBEDO;
-        }
+        } elseif ($signal->key === KEY::NUM_6) {
+            $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_SSAO;
+        } 
+         
     }
 
     /**

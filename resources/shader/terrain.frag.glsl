@@ -1,11 +1,10 @@
 #version 330 core
 
-layout (location = 0) out vec3 gbuffer_position;
-layout (location = 1) out vec3 gbuffer_normal;
-layout (location = 2) out vec4 gbuffer_albedo;
+#include "visu/gbuffer_layout.glsl"
 
 in vec3 v_normal;
 in vec3 v_position;
+in vec4 v_vposition;
 
 void main()
 {
@@ -37,13 +36,9 @@ void main()
         basecolor = vec3(0.855, 0.851, 0.843);
     }
 
-    // now darken the color based on the normal
-    vec4 albedo = vec4(basecolor * (0.5f + 0.5f * v_normal.y), 1.0f);
-
-    gbuffer_albedo = albedo;
+    // darken the color based on the normal
+    gbuffer_albedo = basecolor * (0.5f + 0.5f * v_normal.y);
     gbuffer_normal = v_normal;
     gbuffer_position = v_position;
-    
-
-    //fragment_color = vec4(v_normal, 1.0f);
+    gbuffer_vposition = v_vposition.xyz;
 }
