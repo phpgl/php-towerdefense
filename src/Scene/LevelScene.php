@@ -6,8 +6,6 @@ use GameContainer;
 use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
-use TowerDefense\Component\OrientationComponent;
-use TowerDefense\Component\PositionComponent;
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
@@ -33,7 +31,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private VISULowPolyRenderingSystem $renderingSystem;
     private VISUCameraSystem $cameraSystem;
 
-    private array $aircraftSystems;
+    private AircraftSystem $aircraftSystem;
 
     private LPObjLoader $objectLoader;
     private array $loadedObjects = [];
@@ -77,17 +75,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->container->resolveVisuDispatcher()
         );
 
-        // add aircrafts
-        $initialPosition = new Vec3(500, 250, -1500);
-        $initialOrientation = new Quat();
-        $initialOrientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
-        for($i = 0; $i < 8; $i++) {
-            $initialPosition->z = $initialPosition->z + 250;
-            for($j = 0; $j < 8; $j++) {
-                $initialPosition->x = 500 + 250 * $j;
-                $this->aircraftSystems[] = new AircraftSystem($this->loadedObjects, $initialPosition->copy(), new Quat($initialOrientation->w, $initialOrientation->x, $initialOrientation->y, $initialOrientation->z));
-            }
-        }
+        $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
 
         // prepare the scene
         $this->constructDevEntityPicker();
@@ -130,6 +118,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     public function __destruct()
     {
         // unregister systems
+        $this->aircraftSystem->unregister($this->entities);
         $this->cameraSystem->unregister($this->entities);
         $this->renderingSystem->unregister($this->entities);
 
@@ -150,16 +139,9 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     private function prepareScene()
     {
-        // register components
-        $this->entities->registerComponent(PositionComponent::class);
-        $this->entities->registerComponent(OrientationComponent::class);
-
         $this->cameraSystem->register($this->entities);
         $this->renderingSystem->register($this->entities);
-
-        foreach ($this->aircraftSystems as $aircraftSystem) {
-            $aircraftSystem->register($this->entities);
-        }
+        $this->aircraftSystem->register($this->entities);
 
         // create a camera
         $cameraEntity = $this->entities->create();
@@ -186,6 +168,18 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $transform->position->y = 50;
         $transform->position->x = 100;
         $transform->position->z = -50;
+
+        // add aircrafts
+        $initialPosition = new Vec3(-400.0, 250.0, -900.0);
+        $initialOrientation = new Quat();
+        $initialOrientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
+        for ($i = 0; $i < 8; $i++) {
+            $initialPosition->z = -900.0 + (250.0 * $i);
+            for ($j = 0; $j < 8; $j++) {
+                $initialPosition->x = -400.0 + (250.0 * $j);
+                $this->aircraftSystem->spawnAircraft($this->entities, $initialPosition->copy(), $initialOrientation->copy());
+            }
+        }
     }
 
     /**
@@ -206,10 +200,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     public function update() : void
     {
         $this->cameraSystem->update($this->entities);
-
-        foreach ($this->aircraftSystems as $aircraftSystem) {
-            $aircraftSystem->update($this->entities);
-        }
+        $this->aircraftSystem->update($this->entities);
     }
 
     /**
@@ -221,9 +212,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, VPOS=2, NORM=3, DEPTH=4, ALBEDO=5");
 
-        foreach ($this->aircraftSystems as $aircraftSystem) {
-            $aircraftSystem->render($this->entities, $context);
-        }
+        $this->aircraftSystem->render($this->entities, $context);
 
         $this->cameraSystem->render($this->entities, $context);
 
