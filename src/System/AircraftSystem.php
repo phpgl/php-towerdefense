@@ -6,8 +6,6 @@ use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Component\AircraftComponent;
-use TowerDefense\Component\PositionComponent;
-use TowerDefense\Component\OrientationComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
@@ -40,16 +38,12 @@ class AircraftSystem implements SystemInterface
         $transform->position = $initialPosition;
         $transform->orientation = $initialOrientation;
 
-        $targetPosition = $entities->attach($newAircraft, new PositionComponent);
-        $targetPosition->targetPosition = $transform->position;
-        $targetPosition->startPosition = $transform->position;
+        $aircraftComponent->targetPosition = $transform->position;
+        $aircraftComponent->startPosition = $transform->position;
         $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
-        $targetPosition->targetPosition += $dir * 1000.0;
+        $aircraftComponent->targetPosition += $dir * 1000.0;
         $dir = Quat::multiplyVec3($transform->orientation, $transform::worldDown());
-        $targetPosition->targetPosition += $dir * 100.0;
-
-        $targetOrientation = $entities->attach($newAircraft, new OrientationComponent);
-        $targetOrientation->targetOrientation = $transform->orientation;
+        $aircraftComponent->targetPosition += $dir * 100.0;
     }
 
     /**
@@ -59,8 +53,6 @@ class AircraftSystem implements SystemInterface
     {
         // register components
         $entities->registerComponent(AircraftComponent::class);
-        $entities->registerComponent(PositionComponent::class);
-        $entities->registerComponent(OrientationComponent::class);
     }
 
     /**
@@ -80,32 +72,31 @@ class AircraftSystem implements SystemInterface
     {
         foreach ($entities->view(AircraftComponent::class) as $entity => $aircraft) {
             $transform = $entities->get($entity, Transform::class);
-            $targetPosition = $entities->get($entity, PositionComponent::class);
-            $travelProgress = 1.0 - (abs($transform->position->x - $targetPosition->targetPosition->x) / abs($targetPosition->targetPosition->x - $targetPosition->startPosition->x));
+            $travelProgress = 1.0 - (abs($transform->position->x - $aircraft->targetPosition->x) / abs($aircraft->targetPosition->x - $aircraft->startPosition->x));
             if ($travelProgress >= 1) {
                 $goUp = true;
-                if ($targetPosition->startPosition->y < $targetPosition->targetPosition->y) {
+                if ($aircraft->startPosition->y < $aircraft->targetPosition->y) {
                     $goUp = false;
                 }
 
                 $transform->orientation->rotate(GLM::radians(180.0), new Vec3(0.0, 1.0, 0.0));
-                $targetPosition->targetPosition = $transform->position;
-                $targetPosition->startPosition = $transform->position;
+                $aircraft->targetPosition = $transform->position;
+                $aircraft->startPosition = $transform->position;
                 $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
-                $targetPosition->targetPosition += $dir * 1000.0;
+                $aircraft->targetPosition += $dir * 1000.0;
 
                 if ($goUp) {
                     $dir = Quat::multiplyVec3($transform->orientation, $transform::worldUp());
-                    $targetPosition->targetPosition += $dir * 100.0;
+                    $aircraft->targetPosition += $dir * 100.0;
                 } else {
                     $dir = Quat::multiplyVec3($transform->orientation, $transform::worldDown());
-                    $targetPosition->targetPosition += $dir * 100.0;
+                    $aircraft->targetPosition += $dir * 100.0;
                 }
 
                 $travelProgress = 0.0;
             }
             $newTravelProgress = min($travelProgress + 0.005, 1.0);
-            $newPosition = Vec3::lerp($targetPosition->startPosition, $targetPosition->targetPosition, $newTravelProgress);
+            $newPosition = Vec3::lerp($aircraft->startPosition, $aircraft->targetPosition, $newTravelProgress);
             $transform->setPosition($newPosition);
         }
     }
