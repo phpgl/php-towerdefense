@@ -15,8 +15,6 @@ use VISU\Graphics\Rendering\RenderContext;
 
 class AircraftSystem implements SystemInterface
 {
-    private array $loadedObjects;
-
     private int $aircraft;
 
     /**
@@ -25,9 +23,10 @@ class AircraftSystem implements SystemInterface
      * @param array $loadedObjects
      *
      */
-    public function __construct(array &$loadedObjects)
+    public function __construct(private array          &$loadedObjects,
+                                private readonly ?Vec3 $initialPosition = null,
+                                private readonly ?Quat $initialOrientation = null)
     {
-        $this->loadedObjects = $loadedObjects;
     }
 
     /**
@@ -35,20 +34,26 @@ class AircraftSystem implements SystemInterface
      */
     public function register(EntitiesInterface $entities): void
     {
-        // register components
-        $entities->registerComponent(PositionComponent::class);
-        $entities->registerComponent(OrientationComponent::class);
-
         // create some random renderable objects
         $this->aircraft = $entities->create();
         $renderable = $entities->attach($this->aircraft, new DynamicRenderableModel);
         $renderable->model = $this->loadedObjects['craft_speederA.obj'];
         $transform = $entities->attach($this->aircraft, new Transform);
         $transform->scale = $transform->scale * 100;
-        $transform->position->y = 250;
-        $transform->position->x = 500;
-        $transform->position->z = -550;
-        $transform->orientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
+
+        if ($this->initialPosition != null) {
+            $transform->position = $this->initialPosition;
+        } else {
+            $transform->position->y = 250;
+            $transform->position->x = 500;
+            $transform->position->z = -550;
+        }
+
+        if ($this->initialOrientation != null) {
+            $transform->orientation = $this->initialOrientation;
+        } else {
+            $transform->orientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
+        }
 
         $targetPosition = $entities->attach($this->aircraft, new PositionComponent);
         $targetPosition->targetPosition = $transform->position;

@@ -3,7 +3,11 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use GL\Math\GLM;
+use GL\Math\Quat;
 use GL\Math\Vec3;
+use TowerDefense\Component\OrientationComponent;
+use TowerDefense\Component\PositionComponent;
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
@@ -29,7 +33,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private VISULowPolyRenderingSystem $renderingSystem;
     private VISUCameraSystem $cameraSystem;
 
-    private AircraftSystem $aircraftSystem;
+    private array $aircraftSystems;
 
     private LPObjLoader $objectLoader;
     private array $loadedObjects = [];
@@ -73,7 +77,17 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->container->resolveVisuDispatcher()
         );
 
-        $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
+        // add aircrafts
+        $initialPosition = new Vec3(500, 250, -1500);
+        $initialOrientation = new Quat();
+        $initialOrientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
+        for($i = 0; $i < 8; $i++) {
+            $initialPosition->z = $initialPosition->z + 250;
+            for($j = 0; $j < 8; $j++) {
+                $initialPosition->x = 500 + 250 * $j;
+                $this->aircraftSystems[] = new AircraftSystem($this->loadedObjects, $initialPosition->copy(), new Quat($initialOrientation->w, $initialOrientation->x, $initialOrientation->y, $initialOrientation->z));
+            }
+        }
 
         // prepare the scene
         $this->constructDevEntityPicker();
@@ -136,9 +150,16 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     private function prepareScene()
     {
+        // register components
+        $this->entities->registerComponent(PositionComponent::class);
+        $this->entities->registerComponent(OrientationComponent::class);
+
         $this->cameraSystem->register($this->entities);
         $this->renderingSystem->register($this->entities);
-        $this->aircraftSystem->register($this->entities);
+
+        foreach ($this->aircraftSystems as $aircraftSystem) {
+            $aircraftSystem->register($this->entities);
+        }
 
         // create a camera
         $cameraEntity = $this->entities->create();
@@ -185,7 +206,10 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     public function update() : void
     {
         $this->cameraSystem->update($this->entities);
-        $this->aircraftSystem->update($this->entities);
+
+        foreach ($this->aircraftSystems as $aircraftSystem) {
+            $aircraftSystem->update($this->entities);
+        }
     }
 
     /**
@@ -197,7 +221,9 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, VPOS=2, NORM=3, DEPTH=4, ALBEDO=5");
 
-        $this->aircraftSystem->render($this->entities, $context);
+        foreach ($this->aircraftSystems as $aircraftSystem) {
+            $aircraftSystem->render($this->entities, $context);
+        }
 
         $this->cameraSystem->render($this->entities, $context);
 
