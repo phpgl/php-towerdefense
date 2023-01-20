@@ -7,8 +7,7 @@ use GL\Math\Quat;
 class TransformOrientationAnimation extends BaseAnimation implements AnimationInterface
 {
     public function __construct(
-        public Quat         $initialOrientation,
-        public Quat         $finalOrientation,
+        public Quat         $modifier,
         AnimationEasingType $easingType = AnimationEasingType::LINEAR,
         int                 $initialDelay = 0,
         bool                $repeat = false,

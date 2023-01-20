@@ -7,8 +7,7 @@ use GL\Math\Vec3;
 class TransformPositionAnimation extends BaseAnimation implements AnimationInterface
 {
     public function __construct(
-        public Vec3         $initialPosition,
-        public Vec3         $finalPosition,
+        public Vec3         $modifier,
         AnimationEasingType $easingType = AnimationEasingType::LINEAR,
         int                 $initialDelay = 0,
         bool                $repeat = false,

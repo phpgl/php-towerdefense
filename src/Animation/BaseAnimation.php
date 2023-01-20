@@ -8,6 +8,8 @@ class BaseAnimation implements AnimationContainerInterface
     public int $repeatedCount = 0;
     public int $reversedCount = 0;
 
+    public float $progress = 0.0;
+
     public bool $finished = false;
 
     public bool $running = false;
