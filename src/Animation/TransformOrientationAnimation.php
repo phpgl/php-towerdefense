@@ -4,8 +4,22 @@ namespace TowerDefense\Animation;
 
 use GL\Math\Quat;
 
+/**
+ * Animation that rotates an object with a given orientation
+ */
 class TransformOrientationAnimation extends BaseAnimation implements AnimationInterface
 {
+    /**
+     * @param Quat $modifier The orientation to apply
+     * @param AnimationEasingType $easingType The easing type
+     * @param int $initialDelay The initial delay
+     * @param bool $repeat Whether the animation should repeat
+     * @param int $repeatCount The number of times the animation should repeat
+     * @param int $repeatDelay The delay between each repeat
+     * @param bool $reverse Whether the animation should reverse
+     * @param int $reverseCount The number of times the animation should reverse
+     * @param int $reverseDelay The delay between each reverse
+     */
     public function __construct(
         public Quat         $modifier,
         AnimationEasingType $easingType = AnimationEasingType::LINEAR,
