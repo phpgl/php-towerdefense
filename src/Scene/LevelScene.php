@@ -9,6 +9,7 @@ use GL\Math\Vec3;
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
+use TowerDefense\System\AnimationSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\Picker\DevEntityPicker;
 use VISU\ECS\Picker\DevEntityPickerDelegate;
@@ -32,6 +33,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private VISUCameraSystem $cameraSystem;
 
     private AircraftSystem $aircraftSystem;
+    private AnimationSystem $animationSystem;
 
     private LPObjLoader $objectLoader;
     private array $loadedObjects = [];
@@ -57,7 +59,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         parent::__construct($container);
 
-        // register key handler for debugging 
+        // register key handler for debugging
         // usally a system should handle this but this is temporary
         $this->keyboardHandlerId = $this->container->resolveVisuDispatcher()->register('input.key', [$this, 'handleKeyboardEvent']);
 
@@ -65,7 +67,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->objectLoader = new LPObjLoader($container->resolveGL());
         $this->loadedObjects = $this->objectLoader->loadAllInDirectory(VISU_PATH_RESOURCES . '/models/spacekit');
 
-        // prepare the rendering systems 
+        // prepare the rendering systems
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
@@ -75,6 +77,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->container->resolveVisuDispatcher()
         );
 
+        $this->animationSystem = new AnimationSystem();
         $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
 
         // prepare the scene
@@ -89,16 +92,16 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         // right now using the window framebuffer as render target
         // for entity picking, we need to test if is more efficient
-        // to use a separate framebuffer for this, that could have a much 
+        // to use a separate framebuffer for this, that could have a much
         // lower resolution
         $this->devPickerRenderTarget = $this->container->resolveWindowMain()->getRenderTarget();
 
         // not to happy with the dependency on the rendering system here
-        // but I tried a few architectures now and did not want to waste 
+        // but I tried a few architectures now and did not want to waste
         // more time on this...
         $this->devPicker = new DevEntityPicker(
             $this,
-            $this->entities, 
+            $this->entities,
             $this->container->resolveVisuDispatcher(),
             $this->devPickerRenderTarget,
             [
@@ -119,6 +122,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         // unregister systems
         $this->aircraftSystem->unregister($this->entities);
+        $this->animationSystem->unregister($this->entities);
         $this->cameraSystem->unregister($this->entities);
         $this->renderingSystem->unregister($this->entities);
 
@@ -141,6 +145,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         $this->cameraSystem->register($this->entities);
         $this->renderingSystem->register($this->entities);
+        $this->animationSystem->register($this->entities);
         $this->aircraftSystem->register($this->entities);
 
         // create a camera
@@ -201,6 +206,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         $this->cameraSystem->update($this->entities);
         $this->aircraftSystem->update($this->entities);
+        $this->animationSystem->update($this->entities);
     }
 
     /**
@@ -213,6 +219,8 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, VPOS=2, NORM=3, DEPTH=4, ALBEDO=5");
 
         $this->aircraftSystem->render($this->entities, $context);
+
+        $this->animationSystem->render($this->entities, $context);
 
         $this->cameraSystem->render($this->entities, $context);
 
@@ -250,15 +258,15 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_ALBEDO;
         } elseif ($signal->key === KEY::NUM_6) {
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_SSAO;
-        } 
-         
+        }
+
     }
 
     /**
      * Called when the dev entity picker has selected an entity
-     * 
-     * @param int $entityId 
-     * @return void 
+     *
+     * @param int $entityId
+     * @return void
      */
     public function devEntityPickerDidSelectEntity(int $entityId): void
     {
@@ -266,9 +274,9 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     }
 
     /**
-     * Called when the dev entity picker is about to initate a selection and requires 
+     * Called when the dev entity picker is about to initate a selection and requires
      * the delegate to return the current camera data
-     * 
+     *
      * @return CameraData
      */
     public function devEntityPickerRequestsCameraData(): CameraData
