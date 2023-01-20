@@ -5,7 +5,7 @@ namespace TowerDefense\Animation;
 /**
  * Base for animations
  */
-class BaseAnimation implements AnimationContainerInterface
+class BaseAnimation implements AnimationContainerInterface, AnimationInterface
 {
     public int $runCount = 0; // Number of times the animation has run
     public int $repeatedCount = 0; // Number of times the animation has repeated
@@ -40,5 +40,10 @@ class BaseAnimation implements AnimationContainerInterface
     public function getAnimationContainerType(): AnimationContainerType
     {
         return AnimationContainerType::SINGLE_ANIMATION;
+    }
+
+    public function getAnimationType(): AnimationType
+    {
+        return AnimationType::UNKNOWN;
     }
 }

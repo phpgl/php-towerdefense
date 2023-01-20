@@ -21,4 +21,9 @@ enum AnimationType
      * Position animation (translation)
      */
     case TRANSFORM_POSITION;
+
+    /**
+     * Unknown animation type -> that should not happen
+     */
+    case UNKNOWN;
 }

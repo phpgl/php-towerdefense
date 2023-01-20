@@ -77,7 +77,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->container->resolveVisuDispatcher()
         );
 
-        $this->animationSystem = new AnimationSystem();
+        $this->animationSystem = new AnimationSystem(60); // @TODO get from game loop
         $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
 
         // prepare the scene

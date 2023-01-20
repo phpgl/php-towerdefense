@@ -7,7 +7,7 @@ use GL\Math\Quat;
 /**
  * Animation that rotates an object with a given orientation
  */
-class TransformOrientationAnimation extends BaseAnimation implements AnimationInterface
+class TransformOrientationAnimation extends BaseAnimation
 {
     /**
      * @param Quat $modifier The orientation to apply

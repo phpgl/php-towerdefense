@@ -7,7 +7,7 @@ use GL\Math\Vec3;
 /**
  * Animation that scales an object with a given scale modifier
  */
-class TransformScaleAnimation extends BaseAnimation implements AnimationInterface
+class TransformScaleAnimation extends BaseAnimation
 {
     /**
      * @param Vec3 $modifier The scale modifier to apply

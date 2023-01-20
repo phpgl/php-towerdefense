@@ -7,7 +7,7 @@ use GL\Math\Vec3;
 /**
  * Animation that translates an object with a given position modifier
  */
-class TransformPositionAnimation extends BaseAnimation implements AnimationInterface
+class TransformPositionAnimation extends BaseAnimation
 {
     /**
      * @param Vec3 $modifier The position modifier to apply
