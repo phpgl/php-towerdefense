@@ -83,7 +83,7 @@ class AnimationSystem implements SystemInterface
             } elseif ($animationContainer->getAnimationContainerType() == AnimationContainerType::SEQUENCE_OF_ANIMATIONS) {
                 /** @var AnimationSequence $animationContainer */
                 // get the current animation in line
-                $this->handleAnimationContainer(array_values($animationContainer->animations)[0], $transform);
+                $this->handleAnimationContainer(reset($animationContainer->animations), $transform);
             } elseif ($animationContainer->getAnimationContainerType() == AnimationContainerType::PARALLEL_ANIMATIONS) {
                 /** @var ParallelAnimations $animationContainer */
                 // handle all animations "in parallel"
