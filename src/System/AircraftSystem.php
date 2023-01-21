@@ -45,7 +45,8 @@ class AircraftSystem implements SystemInterface
 
         $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
         $animationComponent->animation = new TransformPositionAnimation(
-            new Vec3(500.0, 0.0, 0.0),
+            new Vec3(-500.0, -200.0, 0.0),
+            2000,
             AnimationEasingType::LINEAR,
             0,
             false,

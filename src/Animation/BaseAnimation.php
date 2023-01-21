@@ -13,18 +13,22 @@ class BaseAnimation
     public float $progress = 0.0; // Progress of the current animation run
     public bool $finished = false; // Whether the animation has finished
     public bool $running = false; // Whether the animation is running
+    public int $requiredTicks = 0; // Number of ticks required to complete the animation
+    public int $currentTick = 0; // Current tick of the animation
 
     /**
+     * @param int $duration The duration of the animation in milliseconds
      * @param AnimationEasingType $easingType The easing type of the animation
-     * @param int $initialDelay The initial delay of the animation
+     * @param int $initialDelay The initial delay of the animation in milliseconds
      * @param bool $repeat Whether the animation should repeat
      * @param int $repeatCount The number of times the animation should repeat
-     * @param int $repeatDelay The delay between repeats
+     * @param int $repeatDelay The delay between repeats in milliseconds
      * @param bool $reverse Whether the animation should reverse
      * @param int $reverseCount The number of times the animation should reverse
-     * @param int $reverseDelay The delay between reverses
+     * @param int $reverseDelay The delay between reverses in milliseconds
      */
     public function __construct(
+        public int                 $duration,
         public AnimationEasingType $easingType = AnimationEasingType::LINEAR,
         public int                 $initialDelay = 0,
         public bool                $repeat = false,

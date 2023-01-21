@@ -2,6 +2,7 @@
 
 namespace TowerDefense\System;
 
+use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationSequence;
 use TowerDefense\Animation\BaseAnimation;
 use TowerDefense\Animation\ParallelAnimations;
@@ -114,6 +115,35 @@ class AnimationSystem implements SystemInterface
     }
 
     /**
+     * Handles the stuff for the base animation
+     *
+     * @param BaseAnimation $animation The animation
+     * @param Transform $transform The transform of the entity
+     *
+     * @return void
+     */
+    private function handleBaseAnimation(BaseAnimation $animation, Transform $transform): void
+    {
+        if (!$animation->running) {
+            $animation->requiredTicks = ($animation->duration / 1000.0) * $this->ticksPerSecond;
+            $animation->currentTick = 0;
+        }
+        if ($animation->currentTick >= $animation->requiredTicks) {
+            $animation->finished = true;
+        } else {
+            $animation->currentTick++;
+        }
+    }
+
+    private function handleBaseAnimationFinalizer(BaseAnimation $animation, Transform $transform): void
+    {
+        if ($animation->currentTick >= $animation->requiredTicks) {
+            $animation->finished = true;
+            $animation->running = false;
+        }
+    }
+
+    /**
      * Handles a TransformPositionAnimation
      *
      * @param TransformPositionAnimation $animation The animation
@@ -122,7 +152,15 @@ class AnimationSystem implements SystemInterface
      */
     private function handleTransformPositionAnimation(TransformPositionAnimation $animation, Transform $transform): void
     {
-
+        $this->handleBaseAnimation($animation, $transform);
+        if (!$animation->running) {
+            $animation->initialPosition = $transform->position->copy();
+            $animation->targetPosition = $animation->initialPosition + $animation->modifier;
+            $animation->running = true;
+        }
+        $newPosition = Vec3::lerp($animation->initialPosition, $animation->targetPosition, (1.0 / $animation->requiredTicks) * $animation->currentTick);
+        $transform->setPosition($newPosition);
+        $this->handleBaseAnimationFinalizer($animation, $transform);
     }
 
     /**
@@ -134,7 +172,7 @@ class AnimationSystem implements SystemInterface
      */
     private function handleTransformScaleAnimation(TransformScaleAnimation $animation, Transform $transform): void
     {
-
+        $this->handleBaseAnimation($animation, $transform);
     }
 
     /**
@@ -146,6 +184,6 @@ class AnimationSystem implements SystemInterface
      */
     private function handleTransformOrientationAnimation(TransformOrientationAnimation $animation, Transform $transform): void
     {
-
+        $this->handleBaseAnimation($animation, $transform);
     }
 }
