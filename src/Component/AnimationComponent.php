@@ -2,9 +2,7 @@
 
 namespace TowerDefense\Component;
 
-use TowerDefense\Animation\AnimationContainerInterface;
-
 class AnimationComponent
 {
-    public AnimationContainerInterface $animation;
+    public object $animation;
 }

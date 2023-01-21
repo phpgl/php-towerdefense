@@ -174,17 +174,11 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $transform->position->x = 100;
         $transform->position->z = -50;
 
-        // add aircrafts
-        $initialPosition = new Vec3(-400.0, 250.0, -900.0);
+        // add aircraft
+        $initialPosition = new Vec3(0.0, 250.0, -250.0);
         $initialOrientation = new Quat();
         $initialOrientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
-        for ($i = 0; $i < 8; $i++) {
-            $initialPosition->z = -900.0 + (250.0 * $i);
-            for ($j = 0; $j < 8; $j++) {
-                $initialPosition->x = -400.0 + (250.0 * $j);
-                $this->aircraftSystem->spawnAircraft($this->entities, $initialPosition->copy(), $initialOrientation->copy());
-            }
-        }
+        $this->aircraftSystem->spawnAircraft($this->entities, $initialPosition->copy(), $initialOrientation->copy());
     }
 
     /**

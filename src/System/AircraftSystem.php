@@ -2,10 +2,11 @@
 
 namespace TowerDefense\System;
 
-use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
-use TowerDefense\Component\AircraftComponent;
+use TowerDefense\Animation\AnimationEasingType;
+use TowerDefense\Animation\TransformPositionAnimation;
+use TowerDefense\Component\AnimationComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
@@ -14,6 +15,11 @@ use VISU\Graphics\Rendering\RenderContext;
 
 class AircraftSystem implements SystemInterface
 {
+    /**
+     * @var int[] $aircrafts The list of aircraft entity ids
+     */
+    private array $aircrafts = [];
+
     /**
      * Constructor
      *
@@ -27,8 +33,7 @@ class AircraftSystem implements SystemInterface
     public function spawnAircraft(EntitiesInterface $entities, Vec3 $initialPosition, Quat $initialOrientation): void
     {
         $newAircraft = $entities->create();
-
-        $aircraftComponent = $entities->attach($newAircraft, new AircraftComponent);
+        $this->aircrafts[] = $newAircraft;
 
         $renderable = $entities->attach($newAircraft, new DynamicRenderableModel);
         $renderable->model = $this->loadedObjects['craft_speederA.obj'];
@@ -38,12 +43,18 @@ class AircraftSystem implements SystemInterface
         $transform->position = $initialPosition;
         $transform->orientation = $initialOrientation;
 
-        $aircraftComponent->targetPosition = $transform->position;
-        $aircraftComponent->startPosition = $transform->position;
-        $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
-        $aircraftComponent->targetPosition += $dir * 1000.0;
-        $dir = Quat::multiplyVec3($transform->orientation, $transform::worldDown());
-        $aircraftComponent->targetPosition += $dir * 100.0;
+        $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
+        $animationComponent->animation = new TransformPositionAnimation(
+            new Vec3(500.0, 0.0, 0.0),
+            AnimationEasingType::LINEAR,
+            0,
+            false,
+            0,
+            0,
+            false,
+            0,
+            0,
+        );
     }
 
     /**
@@ -51,8 +62,6 @@ class AircraftSystem implements SystemInterface
      */
     public function register(EntitiesInterface $entities): void
     {
-        // register components
-        $entities->registerComponent(AircraftComponent::class);
     }
 
     /**
@@ -60,8 +69,8 @@ class AircraftSystem implements SystemInterface
      */
     public function unregister(EntitiesInterface $entities): void
     {
-        foreach ($entities->view(AircraftComponent::class) as $entity => $aircraft) {
-            $entities->destory($entity);
+        foreach ($this->aircrafts as $aircraft) {
+            $entities->destory($aircraft);
         }
     }
 
@@ -70,35 +79,7 @@ class AircraftSystem implements SystemInterface
      */
     public function update(EntitiesInterface $entities): void
     {
-        foreach ($entities->view(AircraftComponent::class) as $entity => $aircraft) {
-            $transform = $entities->get($entity, Transform::class);
-            $travelProgress = 1.0 - (abs($transform->position->x - $aircraft->targetPosition->x) / abs($aircraft->targetPosition->x - $aircraft->startPosition->x));
-            if ($travelProgress >= 1) {
-                $goUp = true;
-                if ($aircraft->startPosition->y < $aircraft->targetPosition->y) {
-                    $goUp = false;
-                }
 
-                $transform->orientation->rotate(GLM::radians(180.0), new Vec3(0.0, 1.0, 0.0));
-                $aircraft->targetPosition = $transform->position;
-                $aircraft->startPosition = $transform->position;
-                $dir = Quat::multiplyVec3($transform->orientation, $transform::worldBackward());
-                $aircraft->targetPosition += $dir * 1000.0;
-
-                if ($goUp) {
-                    $dir = Quat::multiplyVec3($transform->orientation, $transform::worldUp());
-                    $aircraft->targetPosition += $dir * 100.0;
-                } else {
-                    $dir = Quat::multiplyVec3($transform->orientation, $transform::worldDown());
-                    $aircraft->targetPosition += $dir * 100.0;
-                }
-
-                $travelProgress = 0.0;
-            }
-            $newTravelProgress = min($travelProgress + 0.005, 1.0);
-            $newPosition = Vec3::lerp($aircraft->startPosition, $aircraft->targetPosition, $newTravelProgress);
-            $transform->setPosition($newPosition);
-        }
     }
 
     /**
