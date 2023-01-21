@@ -43,9 +43,4 @@ class TransformPositionAnimation extends BaseAnimation
             $reverseDelay,
         );
     }
-
-    public function getAnimationType(): AnimationType
-    {
-        return AnimationType::TRANSFORM_POSITION;
-    }
 }

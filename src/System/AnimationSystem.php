@@ -68,26 +68,31 @@ class AnimationSystem implements SystemInterface
     /**
      * Handles an animation container
      *
-     * @param AnimationContainerInterface $animationContainer The animation container
+     * @param object $animationContainer The animation container
      * @param Transform $transform The transform of the entity
      * @return void
      */
-    private function handleAnimationContainer(AnimationContainerInterface $animationContainer, Transform $transform): void
+    private function handleAnimationContainer(object $animationContainer, Transform $transform): void
     {
-        if (!$animationContainer->finished) {
-            // check the AnimationContainerType of $animationContainer
-            if ($animationContainer->getAnimationContainerType() == AnimationContainerType::SINGLE_ANIMATION) {
-                /** @var BaseAnimation $animationContainer */
-                // handle the animation
-                $this->handleSingleAnimation($animationContainer, $transform);
-            } elseif ($animationContainer->getAnimationContainerType() == AnimationContainerType::SEQUENCE_OF_ANIMATIONS) {
-                /** @var AnimationSequence $animationContainer */
-                // get the current animation in line
-                $this->handleAnimationContainer(reset($animationContainer->animations), $transform);
-            } elseif ($animationContainer->getAnimationContainerType() == AnimationContainerType::PARALLEL_ANIMATIONS) {
-                /** @var ParallelAnimations $animationContainer */
-                // handle all animations "in parallel"
-                foreach ($animationContainer->animations as $animation) {
+        // check the AnimationContainerType of $animationContainer
+        if ($animationContainer instanceof BaseAnimation) {
+            // handle the animation
+            $this->handleSingleAnimation($animationContainer, $transform);
+        } elseif ($animationContainer instanceof AnimationSequence) {
+            // get the current animation in line
+            foreach ($animationContainer->animations as $animation) {
+                if (!$animation->finished) {
+                    // handle the animation
+                    $this->handleAnimationContainer($animation, $transform);
+                    break;
+                }
+            }
+            $this->handleAnimationContainer(reset($animationContainer->animations), $transform);
+        } elseif ($animationContainer instanceof ParallelAnimations) {
+            // handle all animations "in parallel"
+            foreach ($animationContainer->animations as $animation) {
+                if (!$animation->finished) {
+                    // handle the animation
                     $this->handleAnimationContainer($animation, $transform);
                 }
             }
@@ -103,14 +108,11 @@ class AnimationSystem implements SystemInterface
      */
     private function handleSingleAnimation(BaseAnimation $animation, Transform $transform): void
     {
-        if ($animation->getAnimationType() == AnimationType::TRANSFORM_POSITION) {
-            /** @var TransformPositionAnimation $animation */
+        if ($animation instanceof TransformPositionAnimation) {
             $this->handleTransformPositionAnimation($animation, $transform);
-        } else if ($animation->getAnimationType() == AnimationType::TRANSFORM_SCALE) {
-            /** @var TransformScaleAnimation $animation */
+        } else if ($animation instanceof TransformScaleAnimation) {
             $this->handleTransformScaleAnimation($animation, $transform);
-        } else if ($animation->getAnimationType() == AnimationType::TRANSFORM_ORIENTATION) {
-            /** @var TransformOrientationAnimation $animation */
+        } else if ($animation instanceof TransformOrientationAnimation) {
             $this->handleTransformOrientationAnimation($animation, $transform);
         }
     }

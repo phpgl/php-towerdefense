@@ -43,9 +43,4 @@ class TransformScaleAnimation extends BaseAnimation
             $reverseDelay,
         );
     }
-
-    public function getAnimationType(): AnimationType
-    {
-        return AnimationType::TRANSFORM_SCALE;
-    }
 }

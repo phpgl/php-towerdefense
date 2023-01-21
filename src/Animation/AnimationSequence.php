@@ -5,10 +5,6 @@ namespace TowerDefense\Animation;
 /**
  * A sequence of animations, played one after the other.
  */
-class AnimationSequence extends BaseAnimationContainer implements AnimationContainerInterface
+class AnimationSequence extends BaseAnimationContainer
 {
-    public function getAnimationContainerType(): AnimationContainerType
-    {
-        return AnimationContainerType::SEQUENCE_OF_ANIMATIONS;
-    }
 }
