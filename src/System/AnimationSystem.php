@@ -2,10 +2,7 @@
 
 namespace TowerDefense\System;
 
-use TowerDefense\Animation\AnimationContainerInterface;
-use TowerDefense\Animation\AnimationContainerType;
 use TowerDefense\Animation\AnimationSequence;
-use TowerDefense\Animation\AnimationType;
 use TowerDefense\Animation\BaseAnimation;
 use TowerDefense\Animation\ParallelAnimations;
 use TowerDefense\Animation\TransformOrientationAnimation;
