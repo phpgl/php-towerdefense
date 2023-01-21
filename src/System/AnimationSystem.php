@@ -128,11 +128,7 @@ class AnimationSystem implements SystemInterface
             $animation->requiredTicks = ($animation->duration / 1000.0) * $this->ticksPerSecond;
             $animation->currentTick = 0;
         }
-        if ($animation->currentTick >= $animation->requiredTicks) {
-            $animation->finished = true;
-        } else {
-            $animation->currentTick++;
-        }
+        $animation->currentTick++;
     }
 
     private function handleBaseAnimationFinalizer(BaseAnimation $animation, Transform $transform): void
