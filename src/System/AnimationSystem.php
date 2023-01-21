@@ -84,7 +84,6 @@ class AnimationSystem implements SystemInterface
                     break;
                 }
             }
-            $this->handleAnimationContainer(reset($animationContainer->animations), $transform);
         } elseif ($animationContainer instanceof ParallelAnimations) {
             // handle all animations "in parallel"
             foreach ($animationContainer->animations as $animation) {
