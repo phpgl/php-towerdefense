@@ -10,6 +10,7 @@ use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
 use TowerDefense\System\AnimationSystem;
+use TowerDefense\System\HeightmapSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\Picker\DevEntityPicker;
 use VISU\ECS\Picker\DevEntityPickerDelegate;
@@ -31,6 +32,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private TerrainRenderer $terrainRenderer;
     private VISULowPolyRenderingSystem $renderingSystem;
     private VISUCameraSystem $cameraSystem;
+    private HeightmapSystem $heightmapSystem;
 
     private AircraftSystem $aircraftSystem;
     private AnimationSystem $animationSystem;
@@ -79,10 +81,9 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         $this->animationSystem = new AnimationSystem(60); // @TODO get from game loop
         $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
+        $this->heightmapSystem = new HeightmapSystem($this->container->resolveGL());
 
-        // prepare the scene
         $this->constructDevEntityPicker();
-        $this->prepareScene();
     }
 
     /**
@@ -188,7 +189,19 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function load() : void
     {
+        // load the terrain
         $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RESOURCES . '/terrain/alien_planet/alien_planet_terrain.obj');
+        
+        // prepare the scene 
+        $this->prepareScene();
+
+        // create a heightmap from the scene
+        $this->heightmapSystem->caputreHeightmap(
+            $this->entities,
+            [
+                $this->terrainRenderer
+            ]
+        );
     }
 
     /**
@@ -222,11 +235,6 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         $this->renderingSystem->setRenderTarget($backbuffer->target);
         $this->renderingSystem->render($this->entities, $context);
-
-        \VISU\D3D::ray(new Vec3(0, 0, 0), new Vec3(0, 1, 0), \VISU\D3D::$colorGreen, 100);
-        \VISU\D3D::cross(new Vec3(0, 0, 0), \VISU\D3D::$colorRed);
-        \VISU\D3D::aabb(new Vec3(0, 0, 0), new Vec3(10, 10, 10), new Vec3(60, 80, 50), \VISU\D3D::$colorMagenta);
-
     }
 
     /**
