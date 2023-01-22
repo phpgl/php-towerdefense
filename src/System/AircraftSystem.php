@@ -5,6 +5,7 @@ namespace TowerDefense\System;
 use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationEasingType;
+use TowerDefense\Animation\AnimationSequence;
 use TowerDefense\Animation\TransformPositionAnimation;
 use TowerDefense\Component\AnimationComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
@@ -44,18 +45,30 @@ class AircraftSystem implements SystemInterface
         $transform->orientation = $initialOrientation;
 
         $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
-        $animationComponent->animation = new TransformPositionAnimation(
-            new Vec3(-500.0, -200.0, 0.0),
-            2000,
-            AnimationEasingType::LINEAR,
-            0,
-            false,
-            0,
-            0,
-            false,
-            0,
-            0,
-        );
+        $animationComponent->animation = new AnimationSequence([
+            new TransformPositionAnimation(
+                new Vec3(-500.0, -200.0, 0.0),
+                2000,
+                AnimationEasingType::LINEAR,
+                0,
+                false,
+                0,
+                0,
+                false,
+                0,
+                0),
+            new TransformPositionAnimation(
+                new Vec3(0.0, 500.0, 0.0),
+                2000,
+                AnimationEasingType::LINEAR,
+                0,
+                false,
+                0,
+                0,
+                false,
+                0,
+                0)
+        ]);
     }
 
     /**
