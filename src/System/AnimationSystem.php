@@ -2,6 +2,7 @@
 
 namespace TowerDefense\System;
 
+use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationSequence;
 use TowerDefense\Animation\BaseAnimation;
@@ -154,7 +155,7 @@ class AnimationSystem implements SystemInterface
             $animation->targetPosition = $animation->initialPosition + $animation->modifier;
             $animation->running = true;
         }
-        $newPosition = Vec3::lerp($animation->initialPosition, $animation->targetPosition, (1.0 / $animation->requiredTicks) * $animation->currentTick);
+        $newPosition = Vec3::slerp($animation->initialPosition, $animation->targetPosition, (1.0 / $animation->requiredTicks) * $animation->currentTick);
         $transform->setPosition($newPosition);
         $this->handleBaseAnimationFinalizer($animation, $transform);
     }
@@ -181,5 +182,13 @@ class AnimationSystem implements SystemInterface
     private function handleTransformOrientationAnimation(TransformOrientationAnimation $animation, Transform $transform): void
     {
         $this->handleBaseAnimation($animation, $transform);
+        if (!$animation->running) {
+            $animation->initialOrientation = $transform->orientation->copy();
+            $animation->targetOrientation = $animation->initialOrientation + $animation->modifier;
+            $animation->running = true;
+        }
+        $newOrientation = Quat::slerp($animation->initialOrientation, $animation->targetOrientation, (1.0 / $animation->requiredTicks) * $animation->currentTick);
+        $transform->setOrientation($newOrientation);
+        $this->handleBaseAnimationFinalizer($animation, $transform);
     }
 }

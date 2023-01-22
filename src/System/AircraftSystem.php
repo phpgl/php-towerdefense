@@ -2,10 +2,13 @@
 
 namespace TowerDefense\System;
 
+use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationEasingType;
 use TowerDefense\Animation\AnimationSequence;
+use TowerDefense\Animation\ParallelAnimations;
+use TowerDefense\Animation\TransformOrientationAnimation;
 use TowerDefense\Animation\TransformPositionAnimation;
 use TowerDefense\Component\AnimationComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
@@ -45,6 +48,8 @@ class AircraftSystem implements SystemInterface
         $transform->orientation = $initialOrientation;
 
         $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
+        $orientation = new Quat();
+        $orientation->rotate(GLM::radians(-180.0), new Vec3(0.0, 1.0, 0.0));
         $animationComponent->animation = new AnimationSequence([
             new TransformPositionAnimation(
                 new Vec3(-500.0, -200.0, 0.0),
@@ -57,17 +62,30 @@ class AircraftSystem implements SystemInterface
                 false,
                 0,
                 0),
-            new TransformPositionAnimation(
-                new Vec3(0.0, 500.0, 0.0),
-                2000,
-                AnimationEasingType::LINEAR,
-                0,
-                false,
-                0,
-                0,
-                false,
-                0,
-                0)
+            new ParallelAnimations([
+                new TransformPositionAnimation(
+                    new Vec3(0.0, 500.0, 0.0),
+                    2000,
+                    AnimationEasingType::LINEAR,
+                    0,
+                    false,
+                    0,
+                    0,
+                    false,
+                    0,
+                    0),
+                new TransformOrientationAnimation(
+                    $orientation,
+                    2000,
+                    AnimationEasingType::LINEAR,
+                    0,
+                    false,
+                    0,
+                    0,
+                    false,
+                    0,
+                    0)
+            ])
         ]);
     }
 
