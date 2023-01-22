@@ -184,7 +184,7 @@ class AnimationSystem implements SystemInterface
         $this->handleBaseAnimation($animation, $transform);
         if (!$animation->running) {
             $animation->initialOrientation = $transform->orientation->copy();
-            $animation->targetOrientation = $animation->initialOrientation + $animation->modifier;
+            $animation->targetOrientation = $animation->initialOrientation * $animation->modifier;
             $animation->running = true;
         }
         $newOrientation = Quat::slerp($animation->initialOrientation, $animation->targetOrientation, (1.0 / $animation->requiredTicks) * $animation->currentTick);
