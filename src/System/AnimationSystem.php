@@ -77,22 +77,34 @@ class AnimationSystem implements SystemInterface
         if ($animationContainer instanceof BaseAnimation) {
             // handle the animation
             $this->handleSingleAnimation($animationContainer, $transform);
-        } elseif ($animationContainer instanceof AnimationSequence) {
-            // get the current animation in line
-            foreach ($animationContainer->animations as $animation) {
-                if (!$animation->finished) {
-                    // handle the animation
-                    $this->handleAnimationContainer($animation, $transform);
-                    break;
+        } else {
+            $finishedAnimations = 0;
+            if ($animationContainer instanceof AnimationSequence) {
+                // get the current animation in line
+                foreach ($animationContainer->animations as $animation) {
+                    if (!$animation->finished) {
+                        $animationContainer->running = true;
+                        // handle the animation
+                        $this->handleAnimationContainer($animation, $transform);
+                        break;
+                    } else {
+                        $finishedAnimations++;
+                    }
+                }
+            } elseif ($animationContainer instanceof ParallelAnimations) {
+                // handle all animations "in parallel"
+                foreach ($animationContainer->animations as $animation) {
+                    if (!$animation->finished) {
+                        $animationContainer->running = true;
+                        // handle the animation
+                        $this->handleAnimationContainer($animation, $transform);
+                    } else {
+                        $finishedAnimations++;
+                    }
                 }
             }
-        } elseif ($animationContainer instanceof ParallelAnimations) {
-            // handle all animations "in parallel"
-            foreach ($animationContainer->animations as $animation) {
-                if (!$animation->finished) {
-                    // handle the animation
-                    $this->handleAnimationContainer($animation, $transform);
-                }
+            if ($finishedAnimations == count($animationContainer->animations)) {
+                $animationContainer->finished = true;
             }
         }
     }

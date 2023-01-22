@@ -76,7 +76,7 @@ class AircraftSystem implements SystemInterface
                     0),
                 new TransformOrientationAnimation(
                     $orientation,
-                    2000,
+                    500,
                     AnimationEasingType::LINEAR,
                     0,
                     false,
@@ -85,7 +85,18 @@ class AircraftSystem implements SystemInterface
                     false,
                     0,
                     0)
-            ])
+            ]),
+            new TransformPositionAnimation(
+                new Vec3(500.0, 0.0, 0.0),
+                2000,
+                AnimationEasingType::LINEAR,
+                0,
+                false,
+                0,
+                0,
+                false,
+                0,
+                0),
         ]);
     }
 
