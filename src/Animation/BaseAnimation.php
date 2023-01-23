@@ -18,25 +18,25 @@ class BaseAnimation
 
     /**
      * @param int $duration The duration of the animation in milliseconds
-     * @param AnimationEasingType $easingType The easing type of the animation
-     * @param int $initialDelay The initial delay of the animation in milliseconds
+     * @param AnimationEasingType|null $easingType The easing type of the animation
+     * @param int|null $initialDelay The initial delay of the animation in milliseconds
      * @param bool $repeat Whether the animation should repeat
-     * @param int $repeatCount The number of times the animation should repeat
-     * @param int $repeatDelay The delay between repeats in milliseconds
+     * @param int|null $repeatCount The number of times the animation should repeat
+     * @param int|null $repeatDelay The delay between repeats in milliseconds
      * @param bool $reverse Whether the animation should reverse
-     * @param int $reverseCount The number of times the animation should reverse
-     * @param int $reverseDelay The delay between reverses in milliseconds
+     * @param int|null $reverseCount The number of times the animation should reverse
+     * @param int|null $reverseDelay The delay between reverses in milliseconds
      */
     public function __construct(
-        public int                 $duration,
-        public AnimationEasingType $easingType = AnimationEasingType::LINEAR,
-        public int                 $initialDelay = 0,
-        public bool                $repeat = false,
-        public int                 $repeatCount = 0,
-        public int                 $repeatDelay = 0,
-        public bool                $reverse = false,
-        public int                 $reverseCount = 0,
-        public int                 $reverseDelay = 0,
+        public int                  $duration,
+        public ?AnimationEasingType $easingType = AnimationEasingType::LINEAR,
+        public ?int                 $initialDelay = 0,
+        public ?bool                $repeat = false,
+        public ?int                 $repeatCount = 0,
+        public ?int                 $repeatDelay = 0,
+        public ?bool                $reverse = false,
+        public ?int                 $reverseCount = 0,
+        public ?int                 $reverseDelay = 0,
     )
     {
     }

@@ -11,7 +11,7 @@ class BaseAnimationContainer
     /**
      * @param BaseAnimation[] $animations Animations to run
      */
-    public function __construct(public array $animations)
+    public function __construct(public ?array $animations = [])
     {
     }
 }

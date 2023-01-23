@@ -5,7 +5,6 @@ namespace TowerDefense\System;
 use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
-use TowerDefense\Animation\AnimationEasingType;
 use TowerDefense\Animation\AnimationSequence;
 use TowerDefense\Animation\ParallelAnimations;
 use TowerDefense\Animation\TransformOrientationAnimation;
@@ -51,52 +50,12 @@ class AircraftSystem implements SystemInterface
         $orientation = new Quat();
         $orientation->rotate(GLM::radians(-180.0), new Vec3(0.0, 1.0, 0.0));
         $animationComponent->animation = new AnimationSequence([
-            new TransformPositionAnimation(
-                new Vec3(-500.0, -200.0, 0.0),
-                2000,
-                AnimationEasingType::LINEAR,
-                0,
-                false,
-                0,
-                0,
-                false,
-                0,
-                0),
+            new TransformPositionAnimation(new Vec3(-500.0, -200.0, 0.0), 2000),
             new ParallelAnimations([
-                new TransformPositionAnimation(
-                    new Vec3(0.0, 500.0, 0.0),
-                    2000,
-                    AnimationEasingType::LINEAR,
-                    0,
-                    false,
-                    0,
-                    0,
-                    false,
-                    0,
-                    0),
-                new TransformOrientationAnimation(
-                    $orientation,
-                    500,
-                    AnimationEasingType::LINEAR,
-                    0,
-                    false,
-                    0,
-                    0,
-                    false,
-                    0,
-                    0)
+                new TransformPositionAnimation(new Vec3(0.0, 500.0, 0.0), 2000),
+                new TransformOrientationAnimation($orientation, 500)
             ]),
-            new TransformPositionAnimation(
-                new Vec3(500.0, 0.0, 0.0),
-                2000,
-                AnimationEasingType::LINEAR,
-                0,
-                false,
-                0,
-                0,
-                false,
-                0,
-                0),
+            new TransformPositionAnimation(new Vec3(500.0, 0.0, 0.0), 2000),
         ]);
     }
 
