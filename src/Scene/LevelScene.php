@@ -8,6 +8,7 @@ use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\HeightmapSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
+use VISU\D3D;
 use VISU\ECS\Picker\DevEntityPicker;
 use VISU\ECS\Picker\DevEntityPickerDelegate;
 use VISU\Geo\Transform;
@@ -39,6 +40,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private DevEntityPicker $devPicker;
     private RenderTarget $devPickerRenderTarget;
 
+    private $testDishEntity = null;
 
     /**
      * Function ID for keyboard handler
@@ -148,17 +150,18 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $renderable = $this->entities->attach($someObject, new DynamicRenderableModel);
         $renderable->model = $this->loadedObjects['turret_double.obj']; // <- render the turret
         $transform = $this->entities->attach($someObject, new Transform);
-        $transform->scale = $transform->scale * 100;
-        $transform->position->y = 50;
+        $transform->scale = $transform->scale * 10;
+        $transform->position->y = 55;
         $transform->position->z = -50;
 
         // create a sattelie dish "satelliteDish_large.obj"
         $dishObject = $this->entities->create();
+        $this->testDishEntity = $dishObject;
         $renderable = $this->entities->attach($dishObject, new DynamicRenderableModel);
         $renderable->model = $this->loadedObjects['satelliteDish_large.obj'];
         $transform = $this->entities->attach($dishObject, new Transform);
-        $transform->scale = $transform->scale * 100;
-        $transform->position->y = 50;
+        $transform->scale = $transform->scale * 10;
+        $transform->position->y = 55;
         $transform->position->x = 100;
         $transform->position->z = -50;
     }
@@ -211,6 +214,19 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->renderingSystem->setRenderTarget($backbuffer->target);
         $this->renderingSystem->render($this->entities, $context);
         $this->heightmapSystem->render($this->entities, $context);
+
+        // testing the ray tracing heightmap mechanism
+        $p = $this->container->resolveInput()->getNormalizedCursorPosition();
+        $camera = $this->cameraSystem->getActiveCamera($this->entities);
+        $ray = $camera->getSSRay($this->container->resolveWindowMain()->getRenderTarget(), $p);
+
+        $o = $this->heightmapSystem->heightmap->castRay($ray);
+
+        D3D::cross($o, D3D::$colorRed, 10);
+
+        $transform = $this->entities->get($this->testDishEntity, Transform::class);
+        $transform->position = $o;
+        $transform->markDirty();
     }
 
     /**
