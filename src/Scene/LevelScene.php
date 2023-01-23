@@ -210,6 +210,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         $this->renderingSystem->setRenderTarget($backbuffer->target);
         $this->renderingSystem->render($this->entities, $context);
+        $this->heightmapSystem->render($this->entities, $context);
     }
 
     /**
