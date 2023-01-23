@@ -4,6 +4,7 @@ namespace TowerDefense\System;
 
 use GL\Math\Quat;
 use GL\Math\Vec3;
+use TowerDefense\Animation\AnimationEasingType;
 use TowerDefense\Animation\AnimationSequence;
 use TowerDefense\Animation\BaseAnimation;
 use TowerDefense\Animation\ParallelAnimations;
@@ -80,14 +81,33 @@ class AnimationSystem implements SystemInterface
                 $animationContainer->requiredTicks = ($animationContainer->duration / 1000.0) * $this->ticksPerSecond;
                 $animationContainer->currentTick = 0;
             }
+
             $animationContainer->currentTick++;
+
+            $progress = (1.0 / $animationContainer->requiredTicks) * $animationContainer->currentTick;
+
+            // apply easing curves if necessary
+            // @TODO We will add a lot more of them: https://easings.net/
+            if ($animationContainer->easingType != AnimationEasingType::LINEAR) {
+                if ($animationContainer->easingType == AnimationEasingType::EASE_OUT) {
+                    // https://easings.net/#easeOutCubic
+                    $progress = 1 - pow(1 - $progress, 3);
+                } elseif ($animationContainer->easingType == AnimationEasingType::EASE_IN_OUT) {
+                    // https://easings.net/#easeInOutCubic
+                    $progress = $progress < 0.5 ? 4 * $progress * $progress * $progress : 1 - pow(-2 * $progress + 2, 3) / 2;
+                } elseif ($animationContainer->easingType == AnimationEasingType::EASE_IN) {
+                    // https://easings.net/#easeInCubic
+                    $progress = $progress * $progress * $progress;
+                }
+            }
+
             if ($animationContainer instanceof TransformPositionAnimation) {
                 if (!$animationContainer->running) {
                     $animationContainer->initialPosition = $transform->position->copy();
                     $animationContainer->targetPosition = $animationContainer->initialPosition + $animationContainer->modifier;
                     $animationContainer->running = true;
                 }
-                $newPosition = Vec3::slerp($animationContainer->initialPosition, $animationContainer->targetPosition, (1.0 / $animationContainer->requiredTicks) * $animationContainer->currentTick);
+                $newPosition = Vec3::slerp($animationContainer->initialPosition, $animationContainer->targetPosition, $progress);
                 $transform->setPosition($newPosition);
             } else if ($animationContainer instanceof TransformScaleAnimation) {
                 if (!$animationContainer->running) {
@@ -95,7 +115,7 @@ class AnimationSystem implements SystemInterface
                     $animationContainer->targetScale = $animationContainer->initialScale * $animationContainer->modifier;
                     $animationContainer->running = true;
                 }
-                $newScale = Vec3::slerp($animationContainer->initialScale, $animationContainer->targetScale, (1.0 / $animationContainer->requiredTicks) * $animationContainer->currentTick);
+                $newScale = Vec3::slerp($animationContainer->initialScale, $animationContainer->targetScale, $progress);
                 $transform->setScale($newScale);
             } else if ($animationContainer instanceof TransformOrientationAnimation) {
                 if (!$animationContainer->running) {
@@ -103,7 +123,7 @@ class AnimationSystem implements SystemInterface
                     $animationContainer->targetOrientation = $animationContainer->initialOrientation * $animationContainer->modifier;
                     $animationContainer->running = true;
                 }
-                $newOrientation = Quat::slerp($animationContainer->initialOrientation, $animationContainer->targetOrientation, (1.0 / $animationContainer->requiredTicks) * $animationContainer->currentTick);
+                $newOrientation = Quat::slerp($animationContainer->initialOrientation, $animationContainer->targetOrientation, $progress);
                 $transform->setOrientation($newOrientation);
             }
             // check if the animation is finished
