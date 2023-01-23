@@ -9,6 +9,7 @@ use TowerDefense\Animation\AnimationSequence;
 use TowerDefense\Animation\ParallelAnimations;
 use TowerDefense\Animation\TransformOrientationAnimation;
 use TowerDefense\Animation\TransformPositionAnimation;
+use TowerDefense\Animation\TransformScaleAnimation;
 use TowerDefense\Component\AnimationComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
@@ -53,7 +54,11 @@ class AircraftSystem implements SystemInterface
             new TransformPositionAnimation(new Vec3(-500.0, -200.0, 0.0), 2000),
             new ParallelAnimations([
                 new TransformPositionAnimation(new Vec3(0.0, 500.0, 0.0), 2000),
-                new TransformOrientationAnimation($orientation, 500)
+                new AnimationSequence([
+                    new TransformScaleAnimation(new Vec3(0.5, 0.5, 0.5), 500),
+                    new TransformScaleAnimation(new Vec3(2.0, 2.0, 2.0), 500)
+                ]),
+                new TransformOrientationAnimation($orientation, 1000)
             ]),
             new TransformPositionAnimation(new Vec3(500.0, 0.0, 0.0), 2000),
         ]);

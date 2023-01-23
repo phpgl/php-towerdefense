@@ -90,7 +90,13 @@ class AnimationSystem implements SystemInterface
                 $newPosition = Vec3::slerp($animationContainer->initialPosition, $animationContainer->targetPosition, (1.0 / $animationContainer->requiredTicks) * $animationContainer->currentTick);
                 $transform->setPosition($newPosition);
             } else if ($animationContainer instanceof TransformScaleAnimation) {
-                //@TODO: implement
+                if (!$animationContainer->running) {
+                    $animationContainer->initialScale = $transform->scale->copy();
+                    $animationContainer->targetScale = $animationContainer->initialScale * $animationContainer->modifier;
+                    $animationContainer->running = true;
+                }
+                $newScale = Vec3::slerp($animationContainer->initialScale, $animationContainer->targetScale, (1.0 / $animationContainer->requiredTicks) * $animationContainer->currentTick);
+                $transform->setScale($newScale);
             } else if ($animationContainer instanceof TransformOrientationAnimation) {
                 if (!$animationContainer->running) {
                     $animationContainer->initialOrientation = $transform->orientation->copy();

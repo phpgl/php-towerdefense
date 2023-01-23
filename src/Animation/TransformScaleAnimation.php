@@ -9,6 +9,9 @@ use GL\Math\Vec3;
  */
 class TransformScaleAnimation extends BaseAnimation
 {
+    public Vec3 $initialScale;
+    public Vec3 $targetScale;
+
     /**
      * @param Vec3 $modifier The scale modifier to apply
      * @param int $duration The duration of the animation in milliseconds
