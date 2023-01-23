@@ -9,8 +9,8 @@ use GL\Math\Vec3;
  */
 class TransformPositionAnimation extends BaseAnimation
 {
-    public Vec3 $initialPosition;
-    public Vec3 $targetPosition;
+    public ?Vec3 $initialPosition;
+    public ?Vec3 $targetPosition;
 
     /**
      * @param Vec3 $modifier The position modifier to apply

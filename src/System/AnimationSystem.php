@@ -103,24 +103,30 @@ class AnimationSystem implements SystemInterface
 
             if ($animationContainer instanceof TransformPositionAnimation) {
                 if (!$animationContainer->running) {
-                    $animationContainer->initialPosition = $transform->position->copy();
-                    $animationContainer->targetPosition = $animationContainer->initialPosition + $animationContainer->modifier;
+                    if (!$animationContainer->reversing) {
+                        $animationContainer->initialPosition = $transform->position->copy();
+                        $animationContainer->targetPosition = $animationContainer->initialPosition + $animationContainer->modifier;
+                    }
                     $animationContainer->running = true;
                 }
                 $newPosition = Vec3::slerp($animationContainer->initialPosition, $animationContainer->targetPosition, $progress);
                 $transform->setPosition($newPosition);
             } else if ($animationContainer instanceof TransformScaleAnimation) {
                 if (!$animationContainer->running) {
-                    $animationContainer->initialScale = $transform->scale->copy();
-                    $animationContainer->targetScale = $animationContainer->initialScale * $animationContainer->modifier;
+                    if (!$animationContainer->reversing) {
+                        $animationContainer->initialScale = $transform->scale->copy();
+                        $animationContainer->targetScale = $animationContainer->initialScale * $animationContainer->modifier;
+                    }
                     $animationContainer->running = true;
                 }
                 $newScale = Vec3::slerp($animationContainer->initialScale, $animationContainer->targetScale, $progress);
                 $transform->setScale($newScale);
             } else if ($animationContainer instanceof TransformOrientationAnimation) {
                 if (!$animationContainer->running) {
-                    $animationContainer->initialOrientation = $transform->orientation->copy();
-                    $animationContainer->targetOrientation = $animationContainer->initialOrientation * $animationContainer->modifier;
+                    if (!$animationContainer->reversing) {
+                        $animationContainer->initialOrientation = $transform->orientation->copy();
+                        $animationContainer->targetOrientation = $animationContainer->initialOrientation * $animationContainer->modifier;
+                    }
                     $animationContainer->running = true;
                 }
                 $newOrientation = Quat::slerp($animationContainer->initialOrientation, $animationContainer->targetOrientation, $progress);
@@ -128,8 +134,38 @@ class AnimationSystem implements SystemInterface
             }
             // check if the animation is finished
             if ($animationContainer->currentTick >= $animationContainer->requiredTicks) {
+                $reverseBlockedByRepeat = false;
+                if ($animationContainer->reversing) {
+                    $animationContainer->reversing = false;
+                    $animationContainer->reversedCount++;
+                    if ($animationContainer->repeat && ($animationContainer->repeatCount == 0 || $animationContainer->repeatCount > $animationContainer->repeatedCount)) {
+                        $reverseBlockedByRepeat = true;
+                    }
+                } else if ($animationContainer->runCount > 0) {
+                    $animationContainer->repeatedCount++;
+                }
                 $animationContainer->finished = true;
                 $animationContainer->running = false;
+                $animationContainer->runCount++;
+
+                if (!$reverseBlockedByRepeat && $animationContainer->reverse && ($animationContainer->reverseCount == 0 || $animationContainer->reverseCount > $animationContainer->reversedCount)) {
+                    $animationContainer->reversing = true;
+                    $animationContainer->finished = false;
+                    if ($animationContainer instanceof TransformPositionAnimation) {
+                        $animationContainer->targetPosition = $animationContainer->initialPosition->copy();
+                        $animationContainer->initialPosition = $transform->position->copy();
+                    } else if ($animationContainer instanceof TransformScaleAnimation) {
+                        $animationContainer->targetScale = $animationContainer->initialScale->copy();
+                        $animationContainer->initialScale = $transform->scale->copy();
+                    } else if ($animationContainer instanceof TransformOrientationAnimation) {
+                        $animationContainer->targetOrientation = $animationContainer->initialOrientation->copy();
+                        $animationContainer->initialOrientation = $transform->orientation->copy();
+                    }
+                } else {
+                    if ($animationContainer->repeat && ($animationContainer->repeatCount == 0 || $animationContainer->repeatCount > $animationContainer->repeatedCount)) {
+                        $animationContainer->finished = false;
+                    }
+                }
             }
         } else {
             $finishedAnimations = 0;

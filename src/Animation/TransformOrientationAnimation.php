@@ -9,8 +9,8 @@ use GL\Math\Quat;
  */
 class TransformOrientationAnimation extends BaseAnimation
 {
-    public Quat $initialOrientation;
-    public Quat $targetOrientation;
+    public ?Quat $initialOrientation;
+    public ?Quat $targetOrientation;
 
     /**
      * @param Quat $modifier The orientation to apply

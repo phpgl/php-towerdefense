@@ -13,6 +13,7 @@ class BaseAnimation
     public float $progress = 0.0; // Progress of the current animation run
     public bool $finished = false; // Whether the animation has finished
     public bool $running = false; // Whether the animation is running
+    public bool $reversing = false; // Whether the animation is reversing
     public int $requiredTicks = 0; // Number of ticks required to complete the animation
     public int $currentTick = 0; // Current tick of the animation
 

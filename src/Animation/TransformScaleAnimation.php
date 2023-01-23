@@ -9,8 +9,8 @@ use GL\Math\Vec3;
  */
 class TransformScaleAnimation extends BaseAnimation
 {
-    public Vec3 $initialScale;
-    public Vec3 $targetScale;
+    public ?Vec3 $initialScale;
+    public ?Vec3 $targetScale;
 
     /**
      * @param Vec3 $modifier The scale modifier to apply

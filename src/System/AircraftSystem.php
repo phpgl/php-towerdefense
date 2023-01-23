@@ -50,8 +50,8 @@ class AircraftSystem implements SystemInterface
 
         $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
         $orientation = new Quat();
-        $orientation->rotate(GLM::radians(-180.0), new Vec3(0.0, 1.0, 0.0));
-        $animationComponent->animation = new AnimationSequence([
+        $orientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
+        /*$animationComponent->animation = new AnimationSequence([
             new TransformPositionAnimation(new Vec3(-500.0, -200.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT),
             new ParallelAnimations([
                 new TransformPositionAnimation(new Vec3(0.0, 500.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT),
@@ -62,6 +62,12 @@ class AircraftSystem implements SystemInterface
                 new TransformOrientationAnimation($orientation, 1000, AnimationEasingType::EASE_IN_OUT)
             ]),
             new TransformPositionAnimation(new Vec3(500.0, 0.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT),
+        ]);*/
+
+        $animationComponent->animation = new AnimationSequence([
+            new TransformOrientationAnimation($orientation, 1000, AnimationEasingType::EASE_IN_OUT, repeat: true, repeatCount: 4, reverse: true, reverseCount: 1),
+            new TransformPositionAnimation(new Vec3(-500.0, -200.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT, repeat: true, repeatCount: 1, reverse: true, reverseCount: 1),
+            new TransformScaleAnimation(new Vec3(0.5, 0.5, 0.5), 1000, AnimationEasingType::EASE_IN_OUT, repeat: true, repeatCount: 3, reverse: true, reverseCount: 4)
         ]);
     }
 
