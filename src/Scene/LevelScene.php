@@ -3,12 +3,10 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
-use GL\Math\Vec3;
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\HeightmapSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
-use VISU\D3D;
 use VISU\ECS\Picker\DevEntityPicker;
 use VISU\ECS\Picker\DevEntityPickerDelegate;
 use VISU\Geo\Transform;
@@ -21,26 +19,43 @@ use VISU\Graphics\RenderTarget;
 use VISU\OS\Key;
 use VISU\Signals\Input\KeySignal;
 use VISU\System\VISUCameraSystem;
+use VISU\System\VISULowPoly\LPModel;
 use VISU\System\VISULowPoly\LPObjLoader;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
 
-class LevelScene extends BaseScene implements DevEntityPickerDelegate
+abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 {
+    /**
+     * Simple terrain renderer
+     */
     private TerrainRenderer $terrainRenderer;
+
+    /**
+     * Systems
+     * 
+     * ------------------------------------------------------------------------
+     */
     private VISULowPolyRenderingSystem $renderingSystem;
     private VISUCameraSystem $cameraSystem;
     private HeightmapSystem $heightmapSystem;
 
+    /**
+     * Object loader (3D models)
+     */
     private LPObjLoader $objectLoader;
+
+    /**
+     * Loaded objects
+     * 
+     * @var array<string, LPModel>
+     */
     private array $loadedObjects = [];
 
     /**
      * Dev entity picker, for debug and level editor
      */
-    private DevEntityPicker $devPicker;
+    protected DevEntityPicker $devPicker;
     private RenderTarget $devPickerRenderTarget;
-
-    private $testDishEntity = null;
 
     /**
      * Function ID for keyboard handler
@@ -69,14 +84,42 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
 
+        // basic camera system
         $this->cameraSystem = new VISUCameraSystem(
             $this->container->resolveInput(), 
             $this->container->resolveVisuDispatcher()
         );
+        
+        // heightmap system (this is not the terrain)
+        $this->heightmapSystem = new HeightmapSystem(
+            $this->container->resolveGL(),
+            $this->container->resolveInput(),
+            [
+                $this->terrainRenderer
+            ]
+        );
 
-        $this->heightmapSystem = new HeightmapSystem($this->container->resolveGL());
+        // bind all systems to the scene itself
+        $this->bindSystems([
+            $this->cameraSystem,
+            $this->renderingSystem,
+            $this->heightmapSystem,
+        ]);
 
+        // construct the dev entity picker
         $this->constructDevEntityPicker();
+    }
+
+    /**
+     * Destructor
+     */
+    public function __destruct()
+    {
+        // unregister systems
+        $this->unregisterSystems();
+
+        // unbind event handlers
+        $this->container->resolveVisuDispatcher()->unregister('input.key', $this->keyboardHandlerId);
     }
 
     /**
@@ -108,26 +151,22 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->devPicker->enabled = true;
     }
 
-
     /**
-     * Destructor
+     * Loads resources required for the scene, prepere base entiteis 
+     * basically prepare anything that is required to be ready before the scene is rendered.
+     * 
+     * @return void 
      */
-    public function __destruct()
+    public function load() : void
     {
-        // unregister systems
-        $this->cameraSystem->unregister($this->entities);
-        $this->renderingSystem->unregister($this->entities);
+        // load the terrain
+        $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RESOURCES . '/terrain/alien_planet/alien_planet_terrain.obj');
 
-        // unbind event handlers
-        $this->container->resolveVisuDispatcher()->unregister('input.key', $this->keyboardHandlerId);
-    }
+        // register systems
+        $this->registerSystems();
 
-    /**
-     * Returns the scenes name
-     */
-    public function getName() : string
-    {
-        return 'TowerDefense Level';
+        // prepare the scene 
+        $this->prepareScene();
     }
 
     /**
@@ -135,9 +174,6 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     private function prepareScene()
     {
-        $this->cameraSystem->register($this->entities);
-        $this->renderingSystem->register($this->entities);
-
         // create a camera
         $cameraEntity = $this->entities->create();
         $camera = $this->entities->attach($cameraEntity, new Camera(CameraProjectionMode::perspective));
@@ -156,7 +192,6 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         // create a sattelie dish "satelliteDish_large.obj"
         $dishObject = $this->entities->create();
-        $this->testDishEntity = $dishObject;
         $renderable = $this->entities->attach($dishObject, new DynamicRenderableModel);
         $renderable->model = $this->loadedObjects['satelliteDish_large.obj'];
         $transform = $this->entities->attach($dishObject, new Transform);
@@ -167,39 +202,20 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     }
 
     /**
-     * Loads resources required for the scene
-     * 
-     * @return void 
-     */
-    public function load() : void
-    {
-        // load the terrain
-        $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RESOURCES . '/terrain/alien_planet/alien_planet_terrain.obj');
-        
-        // prepare the scene 
-        $this->prepareScene();
-
-        // create a heightmap from the scene
-        $this->heightmapSystem->caputreHeightmap(
-            $this->entities,
-            [
-                $this->terrainRenderer
-            ]
-        );
-    }
-
-    /**
      * Updates the scene state
+     * This is the place where you should update your game state.
      * 
      * @return void 
      */
     public function update() : void
     {
         $this->cameraSystem->update($this->entities);
+        $this->heightmapSystem->update($this->entities);
     }
 
     /**
      * Renders the scene
+     * This is the place where you should render your game state.
      * 
      * @param RenderContext $context
      */
@@ -208,25 +224,12 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, VPOS=2, NORM=3, DEPTH=4, ALBEDO=5");
 
         $this->cameraSystem->render($this->entities, $context);
-
-        $backbuffer = $context->data->get(BackbufferData::class);
-
-        $this->renderingSystem->setRenderTarget($backbuffer->target);
-        $this->renderingSystem->render($this->entities, $context);
         $this->heightmapSystem->render($this->entities, $context);
 
-        // testing the ray tracing heightmap mechanism
-        $p = $this->container->resolveInput()->getNormalizedCursorPosition();
-        $camera = $this->cameraSystem->getActiveCamera($this->entities);
-        $ray = $camera->getSSRay($this->container->resolveWindowMain()->getRenderTarget(), $p);
-
-        $o = $this->heightmapSystem->heightmap->castRay($ray);
-
-        D3D::cross($o, D3D::$colorRed, 10);
-
-        $transform = $this->entities->get($this->testDishEntity, Transform::class);
-        $transform->position = $o;
-        $transform->markDirty();
+        // let the rendering system handle the rest
+        $backbuffer = $context->data->get(BackbufferData::class);
+        $this->renderingSystem->setRenderTarget($backbuffer->target);
+        $this->renderingSystem->render($this->entities, $context);
     }
 
     /**
@@ -253,7 +256,6 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         } elseif ($signal->key === KEY::NUM_6) {
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_SSAO;
         } 
-         
     }
 
     /**
@@ -264,7 +266,6 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function devEntityPickerDidSelectEntity(int $entityId): void
     {
-        var_dump($entityId);
     }
 
     /**

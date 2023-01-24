@@ -84,6 +84,8 @@ class TerrainRenderer implements GBufferGeometryPassInterface, GPUHeightmapGeome
         $this->gl->bindVertexArray($this->terrainVAO);
         $this->gl->bindVertexArrayBuffer($this->terrainVBO);
 
+        glEnable(GL_DEPTH_TEST);
+
         glDrawArrays(GL_TRIANGLES, 0, $this->vertexCount);
     }
 }
