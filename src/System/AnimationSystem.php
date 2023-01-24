@@ -78,12 +78,49 @@ class AnimationSystem implements SystemInterface
         if ($animationContainer instanceof BaseAnimation) {
             // handle the animation
             if (!$animationContainer->running) {
+                // set the required ticks based on the duration
                 $animationContainer->requiredTicks = ($animationContainer->duration / 1000.0) * $this->ticksPerSecond;
                 $animationContainer->currentTick = 0;
+
+                // check if the animation should wait
+                if ($animationContainer->runCount == 0 && $animationContainer->initialDelay > 0 && !$animationContainer->reversing) {
+                    // set the required delay ticks based on the initial delay
+                    $animationContainer->requiredDelayTicks = ($animationContainer->initialDelay / 1000.0) * $this->ticksPerSecond;
+                    $animationContainer->currentDelayTick = 0;
+                    $animationContainer->waiting = true;
+                    $animationContainer->running = true;
+                } else if ($animationContainer->reverseDelay > 0 && $animationContainer->reversing) {
+                    // set the required delay ticks based on the reverse delay
+                    $animationContainer->requiredDelayTicks = ($animationContainer->reverseDelay / 1000.0) * $this->ticksPerSecond;
+                    $animationContainer->currentDelayTick = 0;
+                    $animationContainer->waiting = true;
+                    $animationContainer->running = true;
+                } else if (!$animationContainer->reversing && $animationContainer->runCount > 0 && $animationContainer->repeatDelay > 0) {
+                    // set the required delay ticks based on the repeat delay
+                    $animationContainer->requiredDelayTicks = ($animationContainer->repeatDelay / 1000.0) * $this->ticksPerSecond;
+                    $animationContainer->currentDelayTick = 0;
+                    $animationContainer->waiting = true;
+                    $animationContainer->running = true;
+                }
             }
 
+            // check if the animation is waiting
+            if ($animationContainer->waiting) {
+                // check if the delay is over
+                if ($animationContainer->currentDelayTick >= $animationContainer->requiredDelayTicks) {
+                    $animationContainer->waiting = false;
+                    $animationContainer->running = false;
+                } else {
+                    // increase the delay tick
+                    $animationContainer->currentDelayTick++;
+                    return;
+                }
+            }
+
+            // increase the current tick
             $animationContainer->currentTick++;
 
+            // calculate the progress
             $progress = (1.0 / $animationContainer->requiredTicks) * $animationContainer->currentTick;
 
             // apply easing curves if necessary
@@ -104,33 +141,42 @@ class AnimationSystem implements SystemInterface
             if ($animationContainer instanceof TransformPositionAnimation) {
                 if (!$animationContainer->running) {
                     if (!$animationContainer->reversing) {
+                        // set the initial and target position
                         $animationContainer->initialPosition = $transform->position->copy();
                         $animationContainer->targetPosition = $animationContainer->initialPosition + $animationContainer->modifier;
                     }
                     $animationContainer->running = true;
                 }
+                // calculate the new position
                 $newPosition = Vec3::slerp($animationContainer->initialPosition, $animationContainer->targetPosition, $progress);
-                $transform->setPosition($newPosition);
+                $transform->position = $newPosition;
+                $transform->isDirty = true;
             } else if ($animationContainer instanceof TransformScaleAnimation) {
                 if (!$animationContainer->running) {
                     if (!$animationContainer->reversing) {
+                        // set the initial and target scale
                         $animationContainer->initialScale = $transform->scale->copy();
                         $animationContainer->targetScale = $animationContainer->initialScale * $animationContainer->modifier;
                     }
                     $animationContainer->running = true;
                 }
+                // calculate the new scale
                 $newScale = Vec3::slerp($animationContainer->initialScale, $animationContainer->targetScale, $progress);
-                $transform->setScale($newScale);
+                $transform->scale = $newScale;
+                $transform->isDirty = true;
             } else if ($animationContainer instanceof TransformOrientationAnimation) {
                 if (!$animationContainer->running) {
                     if (!$animationContainer->reversing) {
+                        // set the initial and target orientation
                         $animationContainer->initialOrientation = $transform->orientation->copy();
                         $animationContainer->targetOrientation = $animationContainer->initialOrientation * $animationContainer->modifier;
                     }
                     $animationContainer->running = true;
                 }
+                // calculate the new orientation
                 $newOrientation = Quat::slerp($animationContainer->initialOrientation, $animationContainer->targetOrientation, $progress);
-                $transform->setOrientation($newOrientation);
+                $transform->orientation = $newOrientation;
+                $transform->isDirty = true;
             }
             // check if the animation is finished
             if ($animationContainer->currentTick >= $animationContainer->requiredTicks) {
@@ -138,6 +184,7 @@ class AnimationSystem implements SystemInterface
                 if ($animationContainer->reversing) {
                     $animationContainer->reversing = false;
                     $animationContainer->reversedCount++;
+                    // check if the reverse is blocked by repeat
                     if ($animationContainer->repeat && ($animationContainer->repeatCount == 0 || $animationContainer->repeatCount > $animationContainer->repeatedCount)) {
                         $reverseBlockedByRepeat = true;
                     }
@@ -148,20 +195,25 @@ class AnimationSystem implements SystemInterface
                 $animationContainer->running = false;
                 $animationContainer->runCount++;
 
+                // check if we need to reverse the animation
                 if (!$reverseBlockedByRepeat && $animationContainer->reverse && ($animationContainer->reverseCount == 0 || $animationContainer->reverseCount > $animationContainer->reversedCount)) {
                     $animationContainer->reversing = true;
                     $animationContainer->finished = false;
                     if ($animationContainer instanceof TransformPositionAnimation) {
+                        // swap the initial and target position
                         $animationContainer->targetPosition = $animationContainer->initialPosition->copy();
                         $animationContainer->initialPosition = $transform->position->copy();
                     } else if ($animationContainer instanceof TransformScaleAnimation) {
+                        // swap the initial and target scale
                         $animationContainer->targetScale = $animationContainer->initialScale->copy();
                         $animationContainer->initialScale = $transform->scale->copy();
                     } else if ($animationContainer instanceof TransformOrientationAnimation) {
+                        // swap the initial and target orientation
                         $animationContainer->targetOrientation = $animationContainer->initialOrientation->copy();
                         $animationContainer->initialOrientation = $transform->orientation->copy();
                     }
                 } else {
+                    // check if we need to repeat the animation
                     if ($animationContainer->repeat && ($animationContainer->repeatCount == 0 || $animationContainer->repeatCount > $animationContainer->repeatedCount)) {
                         $animationContainer->finished = false;
                     }
@@ -193,6 +245,7 @@ class AnimationSystem implements SystemInterface
                     }
                 }
             }
+            // check if all animations in the container are finished and set the finished flag
             if ($finishedAnimations == count($animationContainer->animations)) {
                 $animationContainer->finished = true;
             }

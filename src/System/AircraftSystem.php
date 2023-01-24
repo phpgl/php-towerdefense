@@ -47,6 +47,7 @@ class AircraftSystem implements SystemInterface
         $transform->scale = $transform->scale * 100;
         $transform->position = $initialPosition;
         $transform->orientation = $initialOrientation;
+        $transform->isDirty = true;
 
         $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
         $orientation = new Quat();
@@ -65,8 +66,8 @@ class AircraftSystem implements SystemInterface
         ]);*/
 
         $animationComponent->animation = new AnimationSequence([
-            new TransformOrientationAnimation($orientation, 1000, AnimationEasingType::EASE_IN_OUT, repeat: true, repeatCount: 4, reverse: true, reverseCount: 1),
-            new TransformPositionAnimation(new Vec3(-500.0, -200.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT, repeat: true, repeatCount: 1, reverse: true, reverseCount: 1),
+            new TransformOrientationAnimation($orientation, 1000, AnimationEasingType::EASE_IN_OUT, initialDelay: 0, repeat: true, repeatCount: 4, repeatDelay: 1000, reverse: true, reverseCount: 1, reverseDelay: 250),
+            new TransformPositionAnimation(new Vec3(-500.0, -200.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT, initialDelay: 500, repeat: true, repeatCount: 1, repeatDelay: 500, reverse: true, reverseCount: 1, reverseDelay: 500),
             new TransformScaleAnimation(new Vec3(0.5, 0.5, 0.5), 1000, AnimationEasingType::EASE_IN_OUT, repeat: true, repeatCount: 3, reverse: true, reverseCount: 4)
         ]);
     }

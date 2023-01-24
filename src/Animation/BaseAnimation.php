@@ -15,7 +15,10 @@ class BaseAnimation
     public bool $running = false; // Whether the animation is running
     public bool $reversing = false; // Whether the animation is reversing
     public int $requiredTicks = 0; // Number of ticks required to complete the animation
+    public int $requiredDelayTicks = 0; // Number of ticks required to delay the animation
     public int $currentTick = 0; // Current tick of the animation
+    public int $currentDelayTick = 0; // Current delay tick of the animation
+    public bool $waiting = false; // Whether the animation is waiting for the delay to finish
 
     /**
      * @param int $duration The duration of the animation in milliseconds
