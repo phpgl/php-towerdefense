@@ -20,7 +20,7 @@ class HeightmapSystem implements SystemInterface
      */
     private GPUHeightmapRenderer $heightmapRenderer;
 
-    private ?Heightmap $heightmap = null;
+    public ?Heightmap $heightmap = null;
 
     /**
      * Constructor

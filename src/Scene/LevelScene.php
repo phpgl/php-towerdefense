@@ -23,6 +23,7 @@ use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\RenderTarget;
 use VISU\OS\Key;
 use VISU\Signals\Input\KeySignal;
+use VISU\Signals\Input\MouseClickSignal;
 use VISU\System\VISUCameraSystem;
 use VISU\System\VISULowPoly\LPObjLoader;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
@@ -53,6 +54,12 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private int $keyboardHandlerId = 0;
 
     /**
+     * Function ID for mouse click handler
+     */
+    private int $mouseClickHandlerId = 0;
+
+
+    /**
      * Constructor
      */
     public function __construct(
@@ -64,6 +71,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // register key handler for debugging
         // usally a system should handle this but this is temporary
         $this->keyboardHandlerId = $this->container->resolveVisuDispatcher()->register('input.key', [$this, 'handleKeyboardEvent']);
+        $this->mouseClickHandlerId = $this->container->resolveVisuDispatcher()->register('input.mouse_click', [$this, 'handleMouseClickEvent']);
 
         // load all space kit models
         $this->objectLoader = new LPObjLoader($container->resolveGL());
@@ -263,6 +271,21 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_SSAO;
         }
 
+    }
+
+    /**
+     * Mouse click event handler
+     */
+    public function handleMouseClickEvent(MouseClickSignal $signal)
+    {
+        $p = $this->container->resolveInput()->getNormalizedCursorPosition();
+        $camera = $this->cameraSystem->getActiveCamera($this->entities);
+        $ray = $camera->getSSRay($this->container->resolveWindowMain()->getRenderTarget(), $p);
+        $o = $this->heightmapSystem->heightmap->castRay($ray);
+
+        echo "Mouse click event native: x " . $signal->position->x . " y " . $signal->position->y . PHP_EOL;
+        echo "Mouse click event normalized: x" . $p->x . " y " . $p->y . PHP_EOL;
+        echo "Mouse click event heightmap based: x " . $o->x . " y " . $o->y . " z " . $o->z . PHP_EOL;
     }
 
     /**
