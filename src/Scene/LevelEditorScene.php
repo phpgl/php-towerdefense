@@ -3,11 +3,17 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use GL\Math\Vec3;
 use TowerDefense\Component\HeightmapComponent;
+use TowerDefense\Debug\DebugTextOverlay;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\D3D;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\OS\Key;
+use VISU\OS\MouseButton;
+use VISU\Signals\Input\KeySignal;
+use VISU\Signals\Input\MouseClickSignal;
 
 class LevelEditorScene extends LevelScene
 {
@@ -35,6 +41,46 @@ class LevelEditorScene extends LevelScene
 
         // enable the dev picker
         $this->devPicker->enabled = true;
+
+        $this->container->resolveVisuDispatcher()->register('input.mouse_click', function(MouseClickSignal $signal) 
+        {
+            if ($this->selectedEntity !== 0) {
+                $signal->stopPropagation();
+                $this->selectedEntity = 0;   
+                $this->devPicker->enabled = true;
+            }
+        }, -1);
+
+        $this->container->resolveVisuDispatcher()->register('input.key', function(KeySignal $signal) 
+        {
+            if ($this->selectedEntity !== 0 && $signal->action == GLFW_RELEASE) {
+
+                if ($signal->key === Key::ESCAPE) {
+                    $signal->stopPropagation();
+                    $this->selectedEntity = 0;
+                    $this->devPicker->enabled = true;
+                }
+
+                if ($signal->key === Key::DELETE || $signal->key === Key::BACKSPACE) {
+                    $signal->stopPropagation();
+                    $this->entities->destroy($this->selectedEntity);
+                    $this->selectedEntity = 0;
+                    $this->devPicker->enabled = true;
+                }
+
+                // copy
+                if ($signal->key === Key::C) {
+                    $signal->stopPropagation();
+
+                    $copy = $this->entities->create();
+                    foreach($this->entities->components($this->selectedEntity) as $component) {
+                        $this->entities->attach($copy, clone $component);
+                    }
+
+                    $this->selectedEntity = $copy;
+                }
+            }
+        }, -1);
     }
 
     /**
@@ -51,7 +97,6 @@ class LevelEditorScene extends LevelScene
     /**
      * Updates the scene state
      * This is the place where you should update your game state.
-     * 
      * @return void 
      */
     public function update() : void
@@ -59,6 +104,8 @@ class LevelEditorScene extends LevelScene
         parent::update();
 
         $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+
+        $input = $this->container->resolveInput();
         
         // always enable raycasting
         $heightmapComponent->enableRaycasting = true;
@@ -71,6 +118,19 @@ class LevelEditorScene extends LevelScene
 
             // update the position
             $transform->position = $heightmapComponent->cursorWorldPosition->copy();
+
+            if ($input->isKeyPressed(Key::K)) {
+                $transform->scale += 0.1;
+            } else if ($input->isKeyPressed(Key::L)) {
+                $transform->scale -= 0.1;
+            }
+
+            if ($input->isKeyPressed(Key::COMMA)) {
+                $transform->orientation->rotate(0.01, new Vec3(0, 1, 0));
+            } else if ($input->isKeyPressed(Key::PERIOD)) {
+                $transform->orientation->rotate(-0.01, new Vec3(0, 1, 0));
+            }
+
             $transform->markDirty();
         }
     }
@@ -89,6 +149,8 @@ class LevelEditorScene extends LevelScene
         // by rendering an AABB around it
         if ($this->entities->valid($this->selectedEntity)) 
         {
+            DebugTextOverlay::debugString("Entity {$this->selectedEntity} selected, press '.' & ',' to rotate, scale with 'k' & 'l', copy with 'c', delete with 'backspace'");
+
             if (
                 $this->entities->has($this->selectedEntity, DynamicRenderableModel::class) && 
                 $this->entities->has($this->selectedEntity, Transform::class)
@@ -115,9 +177,10 @@ class LevelEditorScene extends LevelScene
             $this->selectedEntity = 0;
             return;
         }
-
+        
         echo "Entity selected: $entityId\n";
 
         $this->selectedEntity = $entityId;
+        $this->devPicker->enabled = false;
     }
 }

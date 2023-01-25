@@ -148,7 +148,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         // we initate a dev entity picker by default but keep it disabled
         // unitl explicity requetsed otherwise
-        $this->devPicker->enabled = true;
+        $this->devPicker->enabled = false;
     }
 
     /**

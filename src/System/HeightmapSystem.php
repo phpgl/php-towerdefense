@@ -107,6 +107,5 @@ class HeightmapSystem implements SystemInterface
     public function caputreHeightmap(EntitiesInterface $entities, HeightmapComponent $component) : void
     {
         $component->heightmap = $this->heightmapRenderer->caputreHeightmap($entities, $this->heightGeometryProducers);
-        // var_dump($component->heightmap->getHeightAt(1000, 1000)); die;
     }
 }
