@@ -286,6 +286,9 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         echo "Mouse click event native: x " . $signal->position->x . " y " . $signal->position->y . PHP_EOL;
         echo "Mouse click event normalized: x" . $p->x . " y " . $p->y . PHP_EOL;
         echo "Mouse click event heightmap based: x " . $o->x . " y " . $o->y . " z " . $o->z . PHP_EOL;
+
+        // forward the click to the aircraft system
+        $this->aircraftSystem->clickAt($this->entities, $o);
     }
 
     /**
