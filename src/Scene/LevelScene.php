@@ -156,6 +156,7 @@ class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->renderingSystem->register($this->entities);
         $this->animationSystem->register($this->entities);
         $this->aircraftSystem->register($this->entities);
+        $this->animationSystem->addAnimationDelegate($this->aircraftSystem);
 
         // create a camera
         $cameraEntity = $this->entities->create();

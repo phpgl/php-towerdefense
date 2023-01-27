@@ -6,7 +6,9 @@ use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationEasingType;
 use TowerDefense\Animation\AnimationSequence;
+use TowerDefense\Animation\AnimationSystemDelegate;
 use TowerDefense\Animation\BaseAnimation;
+use TowerDefense\Animation\BaseAnimationContainer;
 use TowerDefense\Animation\ParallelAnimations;
 use TowerDefense\Animation\TransformOrientationAnimation;
 use TowerDefense\Animation\TransformPositionAnimation;
@@ -19,6 +21,11 @@ use VISU\Graphics\Rendering\RenderContext;
 
 class AnimationSystem implements SystemInterface
 {
+    /**
+     * @var AnimationSystemDelegate[] $animationDelegates The list of animation delegates
+     */
+    private $animationDelegates = [];
+
     public function __construct(private readonly int $ticksPerSecond)
     {
     }
@@ -52,7 +59,7 @@ class AnimationSystem implements SystemInterface
             if (!$animationComponent->animation->finished) {
                 // get the transform of the entity
                 $transform = $entities->get($entity, Transform::class);
-                $this->handleAnimationContainer($animationComponent->animation, $transform);
+                $this->handleAnimationContainer($animationComponent->animation, $transform, $entity);
             }
         }
     }
@@ -66,13 +73,38 @@ class AnimationSystem implements SystemInterface
     }
 
     /**
+     * Adds an animation delegate
+     *
+     * @param AnimationSystemDelegate $delegate
+     * @return void
+     */
+    public function addAnimationDelegate(AnimationSystemDelegate $delegate): void
+    {
+        $this->animationDelegates[] = $delegate;
+    }
+
+    /**
+     * Adds an animation delegate
+     *
+     * @param AnimationSystemDelegate $delegate
+     * @return void
+     */
+    public function removeAnimationDelegate(AnimationSystemDelegate $delegate): void
+    {
+        if (($key = array_search($delegate, $this->animationDelegates, true)) !== false) {
+            unset($this->animationDelegates[$key]);
+        }
+    }
+
+    /**
      * Handles an animation container
      *
      * @param object $animationContainer The animation container
      * @param Transform $transform The transform of the entity
+     * @param int $entity The entity
      * @return void
      */
-    private function handleAnimationContainer(object $animationContainer, Transform $transform): void
+    private function handleAnimationContainer(object $animationContainer, Transform $transform, int $entity): void
     {
         // check the AnimationContainerType of $animationContainer
         if ($animationContainer instanceof BaseAnimation) {
@@ -101,6 +133,11 @@ class AnimationSystem implements SystemInterface
                     $animationContainer->currentDelayTick = 0;
                     $animationContainer->waiting = true;
                     $animationContainer->running = true;
+                }
+                // call the animation delegates
+                foreach ($this->animationDelegates as $animationDelegate) {
+                    // the animation did start
+                    $animationDelegate->animationDidStart($animationContainer, $entity, $animationContainer->reversing, (!$animationContainer->reversing && $animationContainer->runCount > 0), $animationContainer->waiting);
                 }
             }
 
@@ -218,6 +255,12 @@ class AnimationSystem implements SystemInterface
                         $animationContainer->finished = false;
                     }
                 }
+
+                // call the animation delegates
+                foreach ($this->animationDelegates as $delegate) {
+                    // the animation did stop
+                    $delegate->animationDidStop($animationContainer, $entity, $animationContainer->finished);
+                }
             }
         } else {
             $finishedAnimations = 0;
@@ -225,9 +268,16 @@ class AnimationSystem implements SystemInterface
                 // get the current animation in line
                 foreach ($animationContainer->animations as $animation) {
                     if (!$animation->finished) {
-                        $animationContainer->running = true;
+                        if (!$animationContainer->running) {
+                            $animationContainer->running = true;
+                            // call the animation delegates
+                            foreach ($this->animationDelegates as $delegate) {
+                                // the animation did start
+                                $delegate->animationGroupDidBegin($animationContainer, $entity);
+                            }
+                        }
                         // handle the animation
-                        $this->handleAnimationContainer($animation, $transform);
+                        $this->handleAnimationContainer($animation, $transform, $entity);
                         break;
                     } else {
                         $finishedAnimations++;
@@ -237,9 +287,16 @@ class AnimationSystem implements SystemInterface
                 // handle all animations "in parallel"
                 foreach ($animationContainer->animations as $animation) {
                     if (!$animation->finished) {
-                        $animationContainer->running = true;
+                        if (!$animationContainer->running) {
+                            $animationContainer->running = true;
+                            // call the animation delegates
+                            foreach ($this->animationDelegates as $delegate) {
+                                // the animation group did start
+                                $delegate->animationGroupDidBegin($animationContainer, $entity);
+                            }
+                        }
                         // handle the animation
-                        $this->handleAnimationContainer($animation, $transform);
+                        $this->handleAnimationContainer($animation, $transform, $entity);
                     } else {
                         $finishedAnimations++;
                     }
@@ -247,7 +304,13 @@ class AnimationSystem implements SystemInterface
             }
             // check if all animations in the container are finished and set the finished flag
             if ($finishedAnimations == count($animationContainer->animations)) {
+                /* @var $animationContainer BaseAnimationContainer */
                 $animationContainer->finished = true;
+                // call the animation delegates
+                foreach ($this->animationDelegates as $delegate) {
+                    // the animation group did start
+                    $delegate->animationGroupDidFinish($animationContainer, $entity);
+                }
             }
         }
     }

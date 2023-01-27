@@ -7,7 +7,10 @@ use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationEasingType;
 use TowerDefense\Animation\AnimationSequence;
+use TowerDefense\Animation\AnimationSystemDelegate;
 use TowerDefense\Animation\AnimationUtil;
+use TowerDefense\Animation\BaseAnimation;
+use TowerDefense\Animation\BaseAnimationContainer;
 use TowerDefense\Animation\ParallelAnimations;
 use TowerDefense\Animation\TransformOrientationAnimation;
 use TowerDefense\Animation\TransformPositionAnimation;
@@ -20,7 +23,7 @@ use VISU\ECS\SystemInterface;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
 
-class AircraftSystem implements SystemInterface
+class AircraftSystem implements SystemInterface, AnimationSystemDelegate
 {
     /**
      * @var int[] $aircrafts The list of aircraft entity ids
@@ -51,7 +54,7 @@ class AircraftSystem implements SystemInterface
         $transform->orientation = $initialOrientation;
         $transform->isDirty = true;
 
-        // $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
+        $animationComponent = $entities->attach($newAircraft, new AnimationComponent());
         $orientation = new Quat();
         $orientation->rotate(GLM::radians(-90.0), new Vec3(0.0, 1.0, 0.0));
         /*$animationComponent->animation = new AnimationSequence([
@@ -67,11 +70,11 @@ class AircraftSystem implements SystemInterface
             new TransformPositionAnimation(new Vec3(500.0, 0.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT),
         ]);*/
 
-        /*$animationComponent->animation = new AnimationSequence([
+        $animationComponent->animation = new AnimationSequence([
             new TransformOrientationAnimation($orientation, 1000, AnimationEasingType::EASE_IN_OUT, initialDelay: 0, repeat: true, repeatCount: 4, repeatDelay: 1000, reverse: true, reverseCount: 1, reverseDelay: 250),
             new TransformPositionAnimation(new Vec3(-500.0, -200.0, 0.0), 2000, AnimationEasingType::EASE_IN_OUT, initialDelay: 500, repeat: true, repeatCount: 1, repeatDelay: 500, reverse: true, reverseCount: 1, reverseDelay: 500),
             new TransformScaleAnimation(new Vec3(0.5, 0.5, 0.5), 1000, AnimationEasingType::EASE_IN_OUT, repeat: true, repeatCount: 3, reverse: true, reverseCount: 4)
-        ]);*/
+        ]);
     }
 
     /**
@@ -141,5 +144,45 @@ class AircraftSystem implements SystemInterface
     public function render(EntitiesInterface $entities, RenderContext $context): void
     {
         // TODO: Implement render() method.
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function animationDidStart(BaseAnimation $animation, int $entity, bool $reversing, bool $repeating, bool $waiting): void
+    {
+        // TODO: Implement animationDidStart() method.
+        echo "Animation started: " . get_class($animation) . PHP_EOL;
+        echo "Reversing: " . ($reversing ? 'true' : 'false') . PHP_EOL;
+        echo "Repeating: " . ($repeating ? 'true' : 'false') . PHP_EOL;
+        echo "Waiting: " . ($waiting ? 'true' : 'false') . PHP_EOL . PHP_EOL;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function animationDidStop(BaseAnimation $animation, int $entity, bool $finished): void
+    {
+        // TODO: Implement animationDidStop() method.
+        echo "Animation stopped: " . get_class($animation) . PHP_EOL;
+        echo "Finished: " . ($finished ? 'true' : 'false') . PHP_EOL . PHP_EOL;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function animationGroupDidBegin(BaseAnimationContainer $animationGroup, int $entity): void
+    {
+        // TODO: Implement animationGroupDidBegin() method.
+        echo "Animation group began: " . get_class($animationGroup) . PHP_EOL . PHP_EOL;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function animationGroupDidFinish(BaseAnimationContainer $animationGroup, int $entity): void
+    {
+        // TODO: Implement animationGroupDidFinish() method.
+        echo "Animation group finished: " . get_class($animationGroup) . PHP_EOL . PHP_EOL;
     }
 }

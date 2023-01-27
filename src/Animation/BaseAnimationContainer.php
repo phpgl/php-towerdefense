@@ -10,8 +10,12 @@ class BaseAnimationContainer
 
     /**
      * @param BaseAnimation[] $animations Animations to run
+     * @param int|null $tag Tag to identify this animation container
      */
-    public function __construct(public ?array $animations = [])
+    public function __construct(
+        public ?array $animations = [],
+        public ?int   $tag = null
+    )
     {
     }
 }

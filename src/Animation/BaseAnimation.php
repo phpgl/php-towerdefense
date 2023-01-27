@@ -30,6 +30,7 @@ class BaseAnimation
      * @param bool $reverse Whether the animation should reverse
      * @param int|null $reverseCount The number of times the animation should reverse
      * @param int|null $reverseDelay The delay between reverses in milliseconds
+     * @param int|null $tag The tag of the animation
      */
     public function __construct(
         public int                  $duration,
@@ -41,6 +42,7 @@ class BaseAnimation
         public ?bool                $reverse = false,
         public ?int                 $reverseCount = 0,
         public ?int                 $reverseDelay = 0,
+        public ?int                 $tag = null
     )
     {
     }

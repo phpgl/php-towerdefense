@@ -23,6 +23,7 @@ class TransformScaleAnimation extends BaseAnimation
      * @param bool $reverse Whether the animation should reverse
      * @param int|null $reverseCount The number of times the animation should reverse
      * @param int|null $reverseDelay The delay between each reverse in milliseconds
+     * @param int|null $tag The tag of the animation
      */
     public function __construct(
         public Vec3          $modifier,
@@ -35,6 +36,7 @@ class TransformScaleAnimation extends BaseAnimation
         ?bool                $reverse = false,
         ?int                 $reverseCount = 0,
         ?int                 $reverseDelay = 0,
+        ?int                 $tag = null
     )
     {
         parent::__construct(
@@ -47,6 +49,7 @@ class TransformScaleAnimation extends BaseAnimation
             $reverse,
             $reverseCount,
             $reverseDelay,
+            $tag
         );
     }
 
