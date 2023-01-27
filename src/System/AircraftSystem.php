@@ -7,6 +7,7 @@ use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationEasingType;
 use TowerDefense\Animation\AnimationSequence;
+use TowerDefense\Animation\AnimationUtil;
 use TowerDefense\Animation\ParallelAnimations;
 use TowerDefense\Animation\TransformOrientationAnimation;
 use TowerDefense\Animation\TransformPositionAnimation;
@@ -45,7 +46,7 @@ class AircraftSystem implements SystemInterface
         $renderable->model = $this->loadedObjects['craft_speederA.obj'];
 
         $transform = $entities->attach($newAircraft, new Transform);
-        $transform->scale = $transform->scale * 100;
+        $transform->scale = $transform->scale * 50;
         $transform->position = $initialPosition;
         $transform->orientation = $initialOrientation;
         $transform->isDirty = true;
@@ -97,10 +98,16 @@ class AircraftSystem implements SystemInterface
         } else {
             $animationComponent = $entities->get($aircraft, AnimationComponent::class);
         }
-        $animationComponent->animation = new AnimationSequence([
-            TransformOrientationAnimation::fromCurrentAndTargetOrientation($transform->orientation, $targetOrientation, 500),
-            TransformPositionAnimation::fromCurrentAndTargetPosition($transform->position, $position, 1000)
-        ]);
+
+        $orientationAnimation = TransformOrientationAnimation::fromCurrentAndTargetOrientation($transform->orientation, $targetOrientation, 500);
+        $orientationAnimation->easingType = AnimationEasingType::EASE_IN_OUT;
+        $orientationAnimation->duration = AnimationUtil::calculateOrientationTransitionDuration($orientationAnimation->modifier, 360, 250);
+
+        $positionAnimation = TransformPositionAnimation::fromCurrentAndTargetPosition($transform->position, $position, 1000);
+        $positionAnimation->easingType = AnimationEasingType::EASE_IN_OUT;
+        $positionAnimation->duration = AnimationUtil::calculatePositionTransitionDuration($positionAnimation->modifier, 25, 500);
+
+        $animationComponent->animation = new AnimationSequence([$orientationAnimation, $positionAnimation]);
     }
 
     /**

@@ -79,25 +79,25 @@ class AnimationSystem implements SystemInterface
             // handle the animation
             if (!$animationContainer->running) {
                 // set the required ticks based on the duration
-                $animationContainer->requiredTicks = ($animationContainer->duration / 1000.0) * $this->ticksPerSecond;
+                $animationContainer->requiredTicks = ceil(($animationContainer->duration / 1000.0) * $this->ticksPerSecond);
                 $animationContainer->currentTick = 0;
 
                 // check if the animation should wait
                 if ($animationContainer->runCount == 0 && $animationContainer->initialDelay > 0 && !$animationContainer->reversing) {
                     // set the required delay ticks based on the initial delay
-                    $animationContainer->requiredDelayTicks = ($animationContainer->initialDelay / 1000.0) * $this->ticksPerSecond;
+                    $animationContainer->requiredDelayTicks = ceil(($animationContainer->initialDelay / 1000.0) * $this->ticksPerSecond);
                     $animationContainer->currentDelayTick = 0;
                     $animationContainer->waiting = true;
                     $animationContainer->running = true;
                 } else if ($animationContainer->reverseDelay > 0 && $animationContainer->reversing) {
                     // set the required delay ticks based on the reverse delay
-                    $animationContainer->requiredDelayTicks = ($animationContainer->reverseDelay / 1000.0) * $this->ticksPerSecond;
+                    $animationContainer->requiredDelayTicks = ceil(($animationContainer->reverseDelay / 1000.0) * $this->ticksPerSecond);
                     $animationContainer->currentDelayTick = 0;
                     $animationContainer->waiting = true;
                     $animationContainer->running = true;
                 } else if (!$animationContainer->reversing && $animationContainer->runCount > 0 && $animationContainer->repeatDelay > 0) {
                     // set the required delay ticks based on the repeat delay
-                    $animationContainer->requiredDelayTicks = ($animationContainer->repeatDelay / 1000.0) * $this->ticksPerSecond;
+                    $animationContainer->requiredDelayTicks = ceil(($animationContainer->repeatDelay / 1000.0) * $this->ticksPerSecond);
                     $animationContainer->currentDelayTick = 0;
                     $animationContainer->waiting = true;
                     $animationContainer->running = true;
