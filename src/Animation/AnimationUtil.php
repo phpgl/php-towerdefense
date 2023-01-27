@@ -36,6 +36,10 @@ class AnimationUtil
     {
         $normalizedOrientation = Quat::normalized($orientation);
         $angleInDegrees = rad2deg(acos($normalizedOrientation->w) * 2);
+        // If the angle is greater than 180 degrees, then we need to rotate the other shorter way
+        if ($angleInDegrees > 180) {
+            $angleInDegrees = 360 - $angleInDegrees;
+        }
         $timeInMilliseconds = ($angleInDegrees / $degreesPerSecond) * 1000;
         return max(ceil($timeInMilliseconds), $limit);
     }
