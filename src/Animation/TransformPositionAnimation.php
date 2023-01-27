@@ -49,4 +49,17 @@ class TransformPositionAnimation extends BaseAnimation
             $reverseDelay,
         );
     }
+
+    /**
+     * Creates a new animation from the current and target position
+     *
+     * @param Vec3 $currentPosition
+     * @param Vec3 $targetPosition
+     * @param int $duration
+     * @return static
+     */
+    public static function fromCurrentAndTargetPosition(Vec3 $currentPosition, Vec3 $targetPosition, int $duration): self
+    {
+        return new self($targetPosition - $currentPosition, $duration);
+    }
 }

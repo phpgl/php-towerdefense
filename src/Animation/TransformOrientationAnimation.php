@@ -49,4 +49,19 @@ class TransformOrientationAnimation extends BaseAnimation
             $reverseDelay,
         );
     }
+
+    /**
+     * Creates a new animation from the current and target orientation
+     *
+     * @param Quat $currentOrientation
+     * @param Quat $targetOrientation
+     * @param int $duration
+     * @return static
+     */
+    public static function fromCurrentAndTargetOrientation(Quat $currentOrientation, Quat $targetOrientation, int $duration): self
+    {
+        $inverseQuat = $currentOrientation->copy();
+        $inverseQuat->inverse();
+        return new self($inverseQuat * $targetOrientation, $duration);
+    }
 }

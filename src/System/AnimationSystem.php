@@ -148,7 +148,7 @@ class AnimationSystem implements SystemInterface
                     $animationContainer->running = true;
                 }
                 // calculate the new position
-                $newPosition = Vec3::slerp($animationContainer->initialPosition, $animationContainer->targetPosition, $progress);
+                $newPosition = Vec3::lerp($animationContainer->initialPosition, $animationContainer->targetPosition, $progress);
                 $transform->position = $newPosition;
                 $transform->isDirty = true;
             } else if ($animationContainer instanceof TransformScaleAnimation) {
@@ -161,7 +161,7 @@ class AnimationSystem implements SystemInterface
                     $animationContainer->running = true;
                 }
                 // calculate the new scale
-                $newScale = Vec3::slerp($animationContainer->initialScale, $animationContainer->targetScale, $progress);
+                $newScale = Vec3::lerp($animationContainer->initialScale, $animationContainer->targetScale, $progress);
                 $transform->scale = $newScale;
                 $transform->isDirty = true;
             } else if ($animationContainer instanceof TransformOrientationAnimation) {

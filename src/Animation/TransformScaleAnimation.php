@@ -49,4 +49,17 @@ class TransformScaleAnimation extends BaseAnimation
             $reverseDelay,
         );
     }
+
+    /**
+     * Creates a new animation from the current and target scale
+     *
+     * @param Vec3 $currentScale
+     * @param Vec3 $targetScale
+     * @param int $duration
+     * @return static
+     */
+    public static function fromCurrentAndTargetScale(Vec3 $currentScale, Vec3 $targetScale, int $duration): self
+    {
+        return new self($targetScale / $currentScale, $duration);
+    }
 }

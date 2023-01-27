@@ -3,7 +3,6 @@
 namespace TowerDefense\System;
 
 use GL\Math\GLM;
-use GL\Math\Mat4;
 use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Animation\AnimationEasingType;
@@ -13,6 +12,7 @@ use TowerDefense\Animation\TransformOrientationAnimation;
 use TowerDefense\Animation\TransformPositionAnimation;
 use TowerDefense\Animation\TransformScaleAnimation;
 use TowerDefense\Component\AnimationComponent;
+use TowerDefense\Geometry\Vec3Util;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
@@ -74,50 +74,6 @@ class AircraftSystem implements SystemInterface
     }
 
     /**
-     * Calculate the rotation between two vectors
-     *
-     * @param Vec3 $start
-     * @param Vec3 $dest
-     * @return Quat
-     */
-    private function rotationBetweenVectors(Vec3 $start, Vec3 $dest): Quat
-    {
-        $start->normalize();
-        $dest->normalize();
-
-        $cosTheta = Vec3::dot($start, $dest);
-
-        if ($cosTheta < -1 + 0.001) {
-            // special case when vectors in opposite directions:
-            // there is no "ideal" rotation axis
-            // So guess one; any will do as long as it's perpendicular to start
-            $rotationAxis = Vec3::cross(new Vec3(0.0, 0.0, 1.0), $start);
-            if ($rotationAxis->length() < 0.01) {
-                // bad luck, they were parallel, try again!
-                $rotationAxis = Vec3::cross(new Vec3(1.0, 0.0, 0.0), $start);
-            }
-
-            $rotationAxis->normalize();
-            $quat = new Quat();
-            $quat->rotate(GLM::radians(180.0), $rotationAxis);
-            return $quat;
-        }
-
-        $rotationAxis = Vec3::cross($start, $dest);
-
-        $s = sqrt((1 + $cosTheta) * 2);
-        $invs = 1 / $s;
-
-        return new Quat(
-            $s * 0.5,
-            $rotationAxis->x * $invs,
-            $rotationAxis->y * $invs,
-            $rotationAxis->z * $invs
-        );
-
-    }
-
-    /**
      * Handle a click event
      *
      * @param EntitiesInterface $entities
@@ -128,31 +84,23 @@ class AircraftSystem implements SystemInterface
     {
         // get the first aircraft
         $aircraft = $this->aircrafts[0];
+
+        // get the transform component
         $transform = $entities->get($aircraft, Transform::class);
 
-        // set the target position to the click position
-        $targetPosition = $position;
-        //$targetPosition->y = $transform->position->y; // always keep the same height
+        // set the new rotated orientation
+        $position->y = $transform->position->y; // lock height to current height
+        $targetOrientation = Vec3Util::quatFacingForwardTowardsTarget($transform->position, $position, Transform::worldBackward(), Transform::worldUp());
 
-        // Find the rotation between the front of the object (that we assume towards +Z,
-        // but this depends on your model) and the desired direction
-        $direction = $targetPosition - $transform->position;
-        $rot1 = $this->rotationBetweenVectors(Transform::worldBackward(), $direction);
-
-        // Recompute desiredUp so that it's perpendicular to the direction
-        // You can skip that part if you really want to force desiredUp
-        $right = Vec3::cross($direction, Transform::worldUp());
-        $desiredUp = Vec3::cross($right, $direction);
-
-        // Because of the 1rst rotation, the up is probably completely screwed up.
-        // Find the rotation between the "up" of the rotated object, and the desired up
-        $newUp = Quat::multiplyVec3($rot1, new Vec3(0.0, 1.0, 0.0));
-        $rot2 = $this->rotationBetweenVectors($newUp, $desiredUp);
-        $targetOrientation = $rot2 * $rot1; // remember, in reverse order.
-
-        $transform->orientation = $targetOrientation;
-
-        $transform->markDirty();
+        if (!$entities->has($aircraft, AnimationComponent::class)) {
+            $animationComponent = $entities->attach($aircraft, new AnimationComponent());
+        } else {
+            $animationComponent = $entities->get($aircraft, AnimationComponent::class);
+        }
+        $animationComponent->animation = new AnimationSequence([
+            TransformOrientationAnimation::fromCurrentAndTargetOrientation($transform->orientation, $targetOrientation, 500),
+            TransformPositionAnimation::fromCurrentAndTargetPosition($transform->position, $position, 1000)
+        ]);
     }
 
     /**
@@ -168,7 +116,7 @@ class AircraftSystem implements SystemInterface
     public function unregister(EntitiesInterface $entities): void
     {
         foreach ($this->aircrafts as $aircraft) {
-            $entities->destory($aircraft);
+            $entities->destroy($aircraft);
         }
     }
 
