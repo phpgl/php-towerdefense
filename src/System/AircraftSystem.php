@@ -11,17 +11,20 @@ use TowerDefense\Animation\AnimationSystemDelegate;
 use TowerDefense\Animation\AnimationUtil;
 use TowerDefense\Animation\BaseAnimation;
 use TowerDefense\Animation\BaseAnimationContainer;
-use TowerDefense\Animation\ParallelAnimations;
 use TowerDefense\Animation\TransformOrientationAnimation;
 use TowerDefense\Animation\TransformPositionAnimation;
 use TowerDefense\Animation\TransformScaleAnimation;
 use TowerDefense\Component\AnimationComponent;
+use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Geometry\Vec3Util;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\OS\Input;
+use VISU\Signal\Dispatcher;
+use VISU\Signals\Input\MouseClickSignal;
 
 class AircraftSystem implements SystemInterface, AnimationSystemDelegate
 {
@@ -31,13 +34,23 @@ class AircraftSystem implements SystemInterface, AnimationSystemDelegate
     private array $aircrafts = [];
 
     /**
+     * Function ID for mouse click handler
+     */
+    private int $mouseClickHandlerId = 0;
+
+    /**
      * Constructor
      *
      * @param array $loadedObjects
      *
      */
-    public function __construct(private array &$loadedObjects)
-    {
+    public function __construct(
+        private array &$loadedObjects,
+        private EntitiesInterface &$entities,
+        private Dispatcher $dispatcher,
+        private Input $input
+    ) {
+        $this->mouseClickHandlerId = $this->dispatcher->register('input.mouse_click', [$this, 'handleMouseClickEvent']);
     }
 
     public function spawnAircraft(EntitiesInterface $entities, Vec3 $initialPosition, Quat $initialOrientation): void
@@ -78,28 +91,45 @@ class AircraftSystem implements SystemInterface, AnimationSystemDelegate
     }
 
     /**
+     * Mouse click event handler
+     */
+    public function handleMouseClickEvent(MouseClickSignal $signal)
+    {
+        $p = $this->input->getNormalizedCursorPosition();
+        $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+        $o = $heightmapComponent->cursorWorldPosition;
+
+        echo "Mouse click event native: x " . $signal->position->x . " y " . $signal->position->y . PHP_EOL;
+        echo "Mouse click event normalized: x " . $p->x . " y " . $p->y . PHP_EOL;
+        echo "Mouse click event heightmap based: x " . $o->x . " y " . $o->y . " z " . $o->z . PHP_EOL . PHP_EOL;
+
+        // forward the click to the aircraft system
+        $this->clickAt($o);
+    }
+
+    /**
      * Handle a click event
      *
      * @param EntitiesInterface $entities
      * @param Vec3 $position
      * @return void
      */
-    public function clickAt(EntitiesInterface $entities, Vec3 $position): void
+    private function clickAt(Vec3 $position): void
     {
         // get the first aircraft
         $aircraft = $this->aircrafts[0];
 
         // get the transform component
-        $transform = $entities->get($aircraft, Transform::class);
+        $transform = $this->entities->get($aircraft, Transform::class);
 
         // set the new rotated orientation
         $position->y = $transform->position->y; // lock height to current height
         $targetOrientation = Vec3Util::quatFacingForwardTowardsTarget($transform->position, $position, Transform::worldBackward(), Transform::worldUp());
 
-        if (!$entities->has($aircraft, AnimationComponent::class)) {
-            $animationComponent = $entities->attach($aircraft, new AnimationComponent());
+        if (!$this->entities->has($aircraft, AnimationComponent::class)) {
+            $animationComponent = $this->entities->attach($aircraft, new AnimationComponent());
         } else {
-            $animationComponent = $entities->get($aircraft, AnimationComponent::class);
+            $animationComponent = $this->entities->get($aircraft, AnimationComponent::class);
         }
 
         $orientationAnimation = TransformOrientationAnimation::fromCurrentAndTargetOrientation($transform->orientation, $targetOrientation, 500);
@@ -125,6 +155,8 @@ class AircraftSystem implements SystemInterface, AnimationSystemDelegate
      */
     public function unregister(EntitiesInterface $entities): void
     {
+        $this->dispatcher->unregister('input.mouse_click', $this->mouseClickHandlerId);
+
         foreach ($this->aircrafts as $aircraft) {
             $entities->destroy($aircraft);
         }
@@ -135,7 +167,6 @@ class AircraftSystem implements SystemInterface, AnimationSystemDelegate
      */
     public function update(EntitiesInterface $entities): void
     {
-
     }
 
     /**

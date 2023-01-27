@@ -6,7 +6,6 @@ use GameContainer;
 use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
-use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
@@ -24,7 +23,6 @@ use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\RenderTarget;
 use VISU\OS\Key;
 use VISU\Signals\Input\KeySignal;
-use VISU\Signals\Input\MouseClickSignal;
 use VISU\System\VISUCameraSystem;
 use VISU\System\VISULowPoly\LPModel;
 use VISU\System\VISULowPoly\LPObjLoader;
@@ -72,24 +70,16 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private int $keyboardHandlerId = 0;
 
     /**
-     * Function ID for mouse click handler
-     */
-    private int $mouseClickHandlerId = 0;
-
-
-    /**
      * Constructor
      */
     public function __construct(
         protected GameContainer $container,
-    )
-    {
+    ) {
         parent::__construct($container);
 
         // register key handler for debugging
         // usally a system should handle this but this is temporary
         $this->keyboardHandlerId = $this->container->resolveVisuDispatcher()->register('input.key', [$this, 'handleKeyboardEvent']);
-        $this->mouseClickHandlerId = $this->container->resolveVisuDispatcher()->register('input.mouse_click', [$this, 'handleMouseClickEvent']);
 
         // load all space kit models
         $this->objectLoader = new LPObjLoader($container->resolveGL());
@@ -105,7 +95,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->container->resolveInput(),
             $this->container->resolveVisuDispatcher()
         );
-        
+
         // heightmap system (this is not the terrain)
         $this->heightmapSystem = new HeightmapSystem(
             $this->container->resolveGL(),
@@ -116,7 +106,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         );
 
         $this->animationSystem = new AnimationSystem(60); // @TODO get from game loop
-        $this->aircraftSystem = new AircraftSystem($this->loadedObjects);
+        $this->aircraftSystem = new AircraftSystem($this->loadedObjects, $this->entities, $this->container->resolveVisuDispatcher(), $this->container->resolveInput());
         $this->animationSystem->addAnimationDelegate($this->aircraftSystem);
 
         // bind all systems to the scene itself
@@ -147,7 +137,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Constrcuts the DEV entity picker
      */
-    public function constructDevEntityPicker() : void
+    public function constructDevEntityPicker(): void
     {
         // right now using the window framebuffer as render target
         // for entity picking, we need to test if is more efficient
@@ -179,7 +169,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * 
      * @return void 
      */
-    public function load() : void
+    public function load(): void
     {
         // load the terrain
         $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RESOURCES . '/terrain/alien_planet/alien_planet_terrain.obj');
@@ -235,7 +225,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * 
      * @return void 
      */
-    public function update() : void
+    public function update(): void
     {
         $this->cameraSystem->update($this->entities);
         $this->aircraftSystem->update($this->entities);
@@ -249,7 +239,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * 
      * @param RenderContext $context
      */
-    public function render(RenderContext $context) : void
+    public function render(RenderContext $context): void
     {
         DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, VPOS=2, NORM=3, DEPTH=4, ALBEDO=5");
 
@@ -269,7 +259,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Keyboard event handler
      */
-    public function handleKeyboardEvent(KeySignal $signal) : void
+    public function handleKeyboardEvent(KeySignal $signal): void
     {
         if ($signal->mods !== Key::MOD_SHIFT && $signal->action == GLFW_PRESS) {
             return;
@@ -290,23 +280,6 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         } elseif ($signal->key === KEY::NUM_6) {
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_SSAO;
         }
-    }
-
-    /**
-     * Mouse click event handler
-     */
-    public function handleMouseClickEvent(MouseClickSignal $signal)
-    {
-        $p = $this->container->resolveInput()->getNormalizedCursorPosition();
-        $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
-        $o = $heightmapComponent->cursorWorldPosition;
-
-        echo "Mouse click event native: x " . $signal->position->x . " y " . $signal->position->y . PHP_EOL;
-        echo "Mouse click event normalized: x" . $p->x . " y " . $p->y . PHP_EOL;
-        echo "Mouse click event heightmap based: x " . $o->x . " y " . $o->y . " z " . $o->z . PHP_EOL;
-
-        // forward the click to the aircraft system
-        $this->aircraftSystem->clickAt($this->entities, $o);
     }
 
     /**
