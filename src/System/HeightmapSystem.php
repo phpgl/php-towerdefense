@@ -2,16 +2,17 @@
 
 namespace TowerDefense\System;
 
-use GL\Math\Vec3;
-use VISU\D3D;
+use TowerDefense\Component\HeightmapComponent;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
+use VISU\Graphics\Camera;
 use VISU\Graphics\GLState;
 use VISU\Graphics\Heightmap\GPUHeightmapGeometryPassInterface;
 use VISU\Graphics\Heightmap\GPUHeightmapRenderer;
-use VISU\Graphics\Heightmap\Heightmap;
-use VISU\Graphics\Rendering\Pass\CameraData;
+use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\Graphics\RenderTarget;
+use VISU\OS\Input;
 
 class HeightmapSystem implements SystemInterface
 {
@@ -20,13 +21,20 @@ class HeightmapSystem implements SystemInterface
      */
     private GPUHeightmapRenderer $heightmapRenderer;
 
-    public ?Heightmap $heightmap = null;
+    /**
+     * Last frame render target
+     */
+    private RenderTarget $lastFrameRenderTarget;
 
     /**
      * Constructor
+     * 
+     * @param array<GPUHeightmapGeometryPassInterface> $heightGeometryProducers 
      */
     public function __construct(
         private GLState $gl,
+        private Input $input,
+        private array $heightGeometryProducers
     )
     {
         $this->heightmapRenderer = new GPUHeightmapRenderer($gl, 4096, 4096);
@@ -40,7 +48,7 @@ class HeightmapSystem implements SystemInterface
      */
     public function register(EntitiesInterface $entities) : void
     {
-       
+        $entities->setSingleton(new HeightmapComponent);
     }
 
     /**
@@ -50,6 +58,7 @@ class HeightmapSystem implements SystemInterface
      */
     public function unregister(EntitiesInterface $entities) : void
     {
+        $entities->removeSingleton(HeightmapComponent::class);
     }
 
     /**
@@ -59,6 +68,24 @@ class HeightmapSystem implements SystemInterface
      */
     public function update(EntitiesInterface $entities) : void
     {
+        $heightmapComponent = $entities->getSingleton(HeightmapComponent::class);
+
+        if ($heightmapComponent->requiresCapture) {
+            $this->caputreHeightmap($entities, $heightmapComponent);
+            $heightmapComponent->requiresCapture = false;
+        }
+
+        if ($heightmapComponent->enableRaycasting) {
+            // fetch the current camera (first.. @todo support multiple cameras) 
+            $camera = $entities->first(Camera::class);
+
+            // create a ray from the camera to the cursor position
+            $cursorPos = $this->input->getNormalizedCursorPosition();
+            $ray = $camera->getSSRay($this->lastFrameRenderTarget, $cursorPos);
+
+            // cast the ray and update the cursor world position
+            $heightmapComponent->cursorWorldPosition = $heightmapComponent->heightmap->castRay($ray);
+        }
     }
 
     /**
@@ -69,30 +96,17 @@ class HeightmapSystem implements SystemInterface
      */
     public function render(EntitiesInterface $entities, RenderContext $context) : void
     {
-        $cameradData = $context->data->get(CameraData::class);
-
-        $x = $cameradData->renderCamera->transform->position->x;
-        $z = $cameradData->renderCamera->transform->position->z;
-
-        if ($this->heightmap !== null) {
-            for ($xoff=0; $xoff<100; $xoff+=10) {
-                for ($zoff=0; $zoff<100; $zoff+=10) {
-                    D3D::cross(new Vec3($x + $xoff, $this->heightmap->getHeightAt($x + $xoff, $z + $zoff), $z + $zoff), D3D::$colorCyan, 10);
-                }
-            }
-
-            // D3D::cross(new Vec3($x, $this->heightmap->getHeightAt($x, $z), $z), D3D::$colorCyan, 30);
-        }
+        $backbuffer = $context->data->get(BackbufferData::class);
+        $this->lastFrameRenderTarget = $context->resources->getRenderTarget($backbuffer->target);   
     }
 
     /**
      * Captures the heightmap from the given height geometry producers
      * 
      * @param EntitiesInterface $entities
-     * @param array<GPUHeightmapGeometryPassInterface> $heightGeometryProducers
      */
-    public function caputreHeightmap(EntitiesInterface $entities, array $heightGeometryProducers) : void
+    public function caputreHeightmap(EntitiesInterface $entities, HeightmapComponent $component) : void
     {
-        $this->heightmap = $this->heightmapRenderer->caputreHeightmap($entities, $heightGeometryProducers);
+        $component->heightmap = $this->heightmapRenderer->caputreHeightmap($entities, $this->heightGeometryProducers);
     }
 }

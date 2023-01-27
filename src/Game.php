@@ -6,7 +6,7 @@ use GameContainer;
 
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Scene\BaseScene;
-use TowerDefense\Scene\LevelScene;
+use TowerDefense\Scene\LevelEditorScene;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\ClearPass;
 use VISU\Graphics\Rendering\PipelineContainer;
@@ -91,7 +91,7 @@ class Game implements GameLoopDelegate
         Debug3DRenderer::setGlobalInstance($this->dbg3D);
 
         // load an inital scene
-        $this->currentScene = new LevelScene($container);
+        $this->currentScene = new LevelEditorScene($container);
     }
 
     /**
