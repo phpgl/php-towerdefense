@@ -123,8 +123,12 @@ class AircraftSystem implements SystemInterface, AnimationSystemDelegate
         $transform = $this->entities->get($aircraft, Transform::class);
 
         // set the new rotated orientation
+        $height = $position->y;
         $position->y = $transform->position->y; // lock height to current height
         $targetOrientation = Vec3Util::quatFacingForwardTowardsTarget($transform->position, $position, Transform::worldBackward(), Transform::worldUp());
+
+        // set the target height of the terrain + 10 "meters"
+        $position->y = $height + 10.0;
 
         if (!$this->entities->has($aircraft, AnimationComponent::class)) {
             $animationComponent = $this->entities->attach($aircraft, new AnimationComponent());
