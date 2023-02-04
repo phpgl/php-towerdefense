@@ -24,20 +24,35 @@ vec3 get_beizer_pos(vec3 origin, vec3 p0, vec3 dest, float t)
 
 void main()
 {
-    // t = 0 to 1 of the object along the curve
-    float t = (a_position.x - x_mm.x) / (x_mm.y - x_mm.x);
+    // normalize the vertex position to be between 0 and 1
+    vec3 pos = a_position;
+    pos.x -= x_mm.x;
+    float t = pos.x / (x_mm.y - x_mm.x);
+    pos.x = 0; // we compute the x position based on t on the curve
 
-    vec3 pos = get_beizer_pos(origin, p0, dest, t);
+    // current point on the curve
+    vec3 currp = get_beizer_pos(origin, p0, dest, t);
 
-    mat4 model = mat4(1.0);
-    model[3] = vec4(pos, 1.0);
+    // sample some point on the curve to get the tangent
+    vec3 nextp = get_beizer_pos(origin, p0, dest, t + 0.01);
 
-    // mat4 model = mat4(1.0);
+    // calculate the tangent, normal, and binormal
+    // so we can rotate the point to the tangent
+    vec3 tangent = normalize(nextp - currp);
+    vec3 normal = normalize(cross(tangent, vec3(0.0, 1.0, 0.0)));
+    vec3 binormal = normalize(cross(normal, tangent));
+    mat3 rot = mat3(tangent, binormal, normal);
 
-    vec4 world_pos = vec4(a_position + pos, 1.0);
+    // build the model matrix from the 
+    // calculated rotation and current point on the curve
+    mat4 model = mat4(rot);
+    model[3] = vec4(currp, 1.0);
+
+    vec4 world_pos = model * vec4(pos, 1.0);
     v_position = world_pos.xyz;
     v_vposition = view * world_pos;
 
+    // world normal
     vec3 n = normalize(mat3(model) * a_normal);
     v_normal = n;
     

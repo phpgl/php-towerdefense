@@ -147,23 +147,25 @@ class LevelEditorScene extends LevelScene
     {
         parent::render($context);
 
-        static $currentX = 0;
-        static $currentY = 100;
-        if ($this->container->resolveInput()->isKeyPressed(Key::LEFT)) {
-            $currentX -= 0.8;
-        } else if ($this->container->resolveInput()->isKeyPressed(Key::RIGHT)) {
-            $currentX += 0.8;
+        static $origin = new Vec3(50, 00, 50);
+        static $p0 = new Vec3(0, 0, 0);
+        static $dest = new Vec3(200, 50, 50);
+
+        if ($this->container->resolveInput()->isKeyPressed(Key::O)) {
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $origin = $heightmapComponent->cursorWorldPosition->copy();
         }
 
-        if ($this->container->resolveInput()->isKeyPressed(Key::UP)) {
-            $currentY -= 0.8;
-        } else if ($this->container->resolveInput()->isKeyPressed(Key::DOWN)) {
-            $currentY += 0.8;
+        if ($this->container->resolveInput()->isKeyPressed(Key::P)) {
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $dest = $heightmapComponent->cursorWorldPosition->copy();
         }
 
-        $origin = new Vec3(0, -50, 0);
-        $p0 = new Vec3($currentY, 0, $currentX);
-        $dest = new Vec3(200, 50, 0);
+        if ($this->container->resolveInput()->isKeyPressed(Key::I)) {
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $p0 = $heightmapComponent->cursorWorldPosition->copy();
+        }
+
 
         D3D::bezier(
             $origin,
