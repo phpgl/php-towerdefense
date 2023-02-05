@@ -42,47 +42,8 @@ class LevelEditorScene extends LevelScene
         // enable the dev picker
         $this->devPicker->enabled = true;
 
-        // $this->inputIntends->bind('')
-
-        $this->container->resolveVisuDispatcher()->register('input.mouse_click', function(MouseClickSignal $signal) 
-        {
-            if ($this->selectedEntity !== 0) {
-                $signal->stopPropagation();
-                $this->selectedEntity = 0;   
-                $this->devPicker->enabled = true;
-            }
-        }, -1);
-
-        $this->container->resolveVisuDispatcher()->register('input.key', function(KeySignal $signal) 
-        {
-            if ($this->selectedEntity !== 0 && $signal->action == GLFW_RELEASE) {
-
-                if ($signal->key === Key::ESCAPE) {
-                    $signal->stopPropagation();
-                    $this->selectedEntity = 0;
-                    $this->devPicker->enabled = true;
-                }
-
-                if ($signal->key === Key::DELETE || $signal->key === Key::BACKSPACE) {
-                    $signal->stopPropagation();
-                    $this->entities->destroy($this->selectedEntity);
-                    $this->selectedEntity = 0;
-                    $this->devPicker->enabled = true;
-                }
-
-                // copy
-                if ($signal->key === Key::C) {
-                    $signal->stopPropagation();
-
-                    $copy = $this->entities->create();
-                    foreach($this->entities->components($this->selectedEntity) as $component) {
-                        $this->entities->attach($copy, clone $component);
-                    }
-
-                    $this->selectedEntity = $copy;
-                }
-            }
-        }, -1);
+        // switch to the editor input context
+        $this->container->resolveInputContext()->switchTo('level_editor');
     }
 
     /**
@@ -107,7 +68,8 @@ class LevelEditorScene extends LevelScene
 
         $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
 
-        $input = $this->container->resolveInput();
+        // get input context
+        $inputContext = $this->container->resolveInputContext();
         
         // always enable raycasting
         $heightmapComponent->enableRaycasting = true;
@@ -118,22 +80,45 @@ class LevelEditorScene extends LevelScene
         {
             $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
-            // update the position
+            // update the position to heightmap cursor position
             $transform->position = $heightmapComponent->cursorWorldPosition->copy();
 
-            if ($input->isKeyPressed(Key::K)) {
-                $transform->scale += 0.1;
-            } else if ($input->isKeyPressed(Key::L)) {
-                $transform->scale -= 0.1;
-            }
-
-            if ($input->isKeyPressed(Key::COMMA)) {
+            if ($inputContext->actions->isButtonDown('rotate_left')) {
                 $transform->orientation->rotate(0.01, new Vec3(0, 1, 0));
-            } else if ($input->isKeyPressed(Key::PERIOD)) {
+            } else if ($inputContext->actions->isButtonDown('rotate_right')) {
                 $transform->orientation->rotate(-0.01, new Vec3(0, 1, 0));
             }
 
+            if ($inputContext->actions->isButtonDown('scale_up')) {
+                $transform->scale += 0.1;
+            } else if ($inputContext->actions->isButtonDown('scale_down')) {
+                $transform->scale -= 0.1;
+            }
+
             $transform->markDirty();
+
+            // copy
+            if ($inputContext->actions->didButtonRelease('copy')) {
+                $copy = $this->entities->create();
+                foreach($this->entities->components($this->selectedEntity) as $component) {
+                    $this->entities->attach($copy, clone $component);
+                }
+                $this->selectedEntity = $copy;
+            }
+
+            // delete 
+            if ($inputContext->actions->didButtonRelease('delete')) {
+                $this->entities->destroy($this->selectedEntity);
+                $this->deselectEntity();
+            }
+
+
+            if ($inputContext->actions->didButtonRelease('place')) {
+                $this->deselectEntity();
+            }
+        }
+        else {
+            $this->deselectEntity();
         }
     }
 
@@ -201,6 +186,20 @@ class LevelEditorScene extends LevelScene
         }
     }
 
+    private function deselectEntity()
+    {
+        $this->selectedEntity = 0;
+        $this->devPicker->enabled = true;
+        $this->container->resolveInputContext()->switchToNext('level_editor');
+    }
+
+    private function selectEntity(int $entityId)
+    {
+        $this->selectedEntity = $entityId;
+        $this->devPicker->enabled = false;
+        $this->container->resolveInputContext()->switchToNext('level_editor.selected');
+    }
+
     /**
      * Called when the dev entity picker has selected an entity
      * 
@@ -210,13 +209,11 @@ class LevelEditorScene extends LevelScene
     public function devEntityPickerDidSelectEntity(int $entityId): void
     {
         if (!$this->entities->valid($entityId)) {
-            $this->selectedEntity = 0;
+            $this->deselectEntity();
             return;
         }
         
         echo "Entity selected: $entityId\n";
-
-        $this->selectedEntity = $entityId;
-        $this->devPicker->enabled = false;
+        $this->selectEntity($entityId);
     }
 }

@@ -25,11 +25,6 @@
 @game_loop.main: VISU\Runtime\GameLoop(@game, 60)
 
 /**
- * Event handling 
- */
-@input: VISU\OS\Input(@window.main, @visu.dispatcher)
-
-/**
  * Shader storage 
  */
 @shaders: VISU\Graphics\ShaderCollection(@GL, :visu.path.resources.shader)
