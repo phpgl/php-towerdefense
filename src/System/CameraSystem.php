@@ -2,12 +2,19 @@
 
 namespace TowerDefense\System;
 
+use TowerDefense\Component\GameCameraComponent;
 use VISU\ECS\EntitiesInterface;
-use VISU\Graphics\Rendering\RenderContext;
+use VISU\Graphics\Camera;
+use VISU\Signals\Input\CursorPosSignal;
 use VISU\System\VISUCameraSystem;
 
 class CameraSystem extends VISUCameraSystem
 {
+    /**
+     * Default camera mode is game in the game... 
+     */
+    protected int $visuCameraMode = self::CAMERA_MODE_FLYING;
+
     /**
      * Registers the system, this is where you should register all required components.
      * 
@@ -16,6 +23,8 @@ class CameraSystem extends VISUCameraSystem
     public function register(EntitiesInterface $entities) : void
     {
         parent::register($entities);
+
+        $entities->setSingleton(new GameCameraComponent);
     }
 
     /**
@@ -26,26 +35,42 @@ class CameraSystem extends VISUCameraSystem
     public function unregister(EntitiesInterface $entities) : void
     {
         parent::unregister($entities);
+
+        $entities->removeSingleton(GameCameraComponent::class);
     }
 
     /**
-     * Updates handler, this is where the game state should be updated.
+     * Override this method to handle the cursor position in game mode
      * 
+     * @param CursorPosSignal $signal 
      * @return void 
      */
-    public function update(EntitiesInterface $entities) : void
+    protected function handleCursorPosVISUGame(CursorPosSignal $signal) : void
     {
-        parent::update($entities);
+        // auto transform = get_active_camera_transform();
+        // auto &cbcamera = entities.get<Component::Gameplay::CBCamera>(main_camera_entity);
+        
+        // // increase roation velocity if mouse is pressed
+        // if (_input->mousebutton_is_pressed(GLFW_MOUSE_BUTTON_MIDDLE))
+        // {
+        //     cbcamera.rotation_velocity.x += event.offsetx * cbcamera.rotation_velocity_mouse;
+        //     cbcamera.rotation_velocity.y += event.offsety * cbcamera.rotation_velocity_mouse;
+        // }
+
+        // $gameCamera = $entities->getSingleton(GameCameraComponent::class);
     }
 
     /**
-     * Handles rendering of the scene, here you can attach additional render passes,
-     * modify the render pipeline or customize rendering related data.
+     * Override this method to update the camera in game mode
      * 
-     * @param RenderContext $context
+     * @param EntitiesInterface $entities
      */
-    public function render(EntitiesInterface $entities, RenderContext $context) : void
+    public function updateGameCamera(EntitiesInterface $entities, Camera $camera) : void
     {
-        parent::render($entities, $context);
+        $gameCamera = $entities->getSingleton(GameCameraComponent::class);
+
+        $camera->transform->position = $gameCamera->focusPoint->copy();
+        $camera->transform->position->z = $camera->transform->position->z + 10.0;
+        $camera->transform->lookAt($gameCamera->focusPoint);
     }
 }
