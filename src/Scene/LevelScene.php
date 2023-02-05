@@ -7,6 +7,7 @@ use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
 use TowerDefense\Debug\DebugTextOverlay;
+use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
 use TowerDefense\System\AnimationSystem;
@@ -31,9 +32,14 @@ use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
 abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 {
     /**
-     * Simple terrain renderer
+     * Terrain renderer
      */
     private TerrainRenderer $terrainRenderer;
+
+    /**
+     * Road renderer
+     */
+    protected RoadRenderer $roadRenderer;
 
     /**
      * Systems
@@ -87,8 +93,11 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         // prepare the rendering systems
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL(), $container->resolveShaders());
+        $this->roadRenderer = new RoadRenderer($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
+        $this->renderingSystem->addGeometryRenderer($this->roadRenderer);
+        
 
         // basic camera system
         $this->cameraSystem = new VISUCameraSystem(
@@ -173,6 +182,9 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         // load the terrain
         $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RESOURCES . '/terrain/alien_planet/alien_planet_terrain.obj');
+
+        // load basic road
+        $this->roadRenderer->loadRoad(VISU_PATH_RESOURCES . '/models/road/basic.obj');
 
         // register systems
         $this->registerSystems();

@@ -42,6 +42,8 @@ class LevelEditorScene extends LevelScene
         // enable the dev picker
         $this->devPicker->enabled = true;
 
+        // $this->inputIntends->bind('')
+
         $this->container->resolveVisuDispatcher()->register('input.mouse_click', function(MouseClickSignal $signal) 
         {
             if ($this->selectedEntity !== 0) {
@@ -144,6 +146,40 @@ class LevelEditorScene extends LevelScene
     public function render(RenderContext $context) : void
     {
         parent::render($context);
+
+        static $origin = new Vec3(50, 00, 50);
+        static $p0 = new Vec3(0, 0, 0);
+        static $dest = new Vec3(200, 50, 50);
+
+        if ($this->container->resolveInput()->isKeyPressed(Key::O)) {
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $origin = $heightmapComponent->cursorWorldPosition->copy();
+        }
+
+        if ($this->container->resolveInput()->isKeyPressed(Key::P)) {
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $dest = $heightmapComponent->cursorWorldPosition->copy();
+        }
+
+        if ($this->container->resolveInput()->isKeyPressed(Key::I)) {
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $p0 = $heightmapComponent->cursorWorldPosition->copy();
+        }
+
+
+        D3D::bezier(
+            $origin,
+            $p0,
+            $dest,
+            D3D::$colorRed
+        );
+
+        D3D::cross($origin, D3D::$colorGreen, 5);
+        D3D::cross($dest, D3D::$colorGreen, 5);
+
+        $this->roadRenderer->tmpOrigin = $origin;
+        $this->roadRenderer->tmpP0 = $p0;
+        $this->roadRenderer->tmpDest = $dest;
 
         // hightlight the selected entity
         // by rendering an AABB around it
