@@ -1,8 +1,8 @@
-# Blender MTL File: 'None'
-# Material Count: 1
+# Blender 3.4.1 MTL File: 'None'
+# www.blender.org
 
 newmtl Default_OBJ.001
-Ns 225.000000
+Ns 224.999985
 Ka 1.000000 1.000000 1.000000
 Kd 0.800000 0.800000 0.800000
 Ks 0.500000 0.500000 0.500000
