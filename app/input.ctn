@@ -1,0 +1,49 @@
+/**
+ * Base input handler
+ */
+@input: VISU\OS\Input(@window.main, @visu.dispatcher)
+
+/**
+ * Input context mapper
+ */
+@input.context: VISU\OS\InputContextMap(@visu.dispatcher)
+    - register('main_menu', @input.actions.main_menu)
+    - register('level_editor', @input.actions.level_editor)
+    - register('level_editor.selected', @input.actions.level_editor.selected)
+    - switchTo('main_menu')
+
+/**
+ * Actions maps (aka key bindings)
+ */
+
+/**
+ * Main menu actions
+ */
+@input.actions.main_menu: VISU\OS\InputActionMap()
+    - importArrayMap({
+        menu_up: '@Key::UP',
+        menu_down: '@Key::DOWN',
+        menu_left: '@Key::LEFT',
+        menu_right: '@Key::RIGHT',
+        menu_select: '@Key::ENTER',
+        menu_back: '@Key::BACKSPACE',
+    })
+
+/**
+ * Level Editor
+ */
+@input.actions.level_editor: VISU\OS\InputActionMap()
+    - importArrayMap({
+        'create_object': '@Key::C',
+    })
+
+@input.actions.level_editor.selected: VISU\OS\InputActionMap()
+    - importArrayMap({
+        place: '#click',
+        rotate_left: '@Key::COMMA',
+        rotate_right: '@Key::PERIOD',
+        scale_up: '@Key::K',
+        scale_down: '@Key::L',
+        delete: '@Key::BACKSPACE',
+        copy: '@Key::C',
+    })

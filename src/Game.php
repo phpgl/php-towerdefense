@@ -15,6 +15,7 @@ use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\Renderer\Debug3DRenderer;
 use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\Graphics\ShaderProgram;
+use VISU\OS\InputContextMap;
 use VISU\OS\Window;
 use VISU\Runtime\GameLoopDelegate;
 
@@ -34,6 +35,11 @@ class Game implements GameLoopDelegate
      * @var Window
      */
     private Window $window;
+
+    /**
+     * Input context map
+     */
+    private InputContextMap $inputContext;
 
     /**
      * Current game tick
@@ -76,6 +82,9 @@ class Game implements GameLoopDelegate
 
         // make the input the windows event handler
         $this->window->setEventHandler($this->container->resolveInput());
+
+        // initialize the input context map
+        $this->inputContext = $this->container->resolveInputContext();
 
         // initialize the pipeline resources
         $this->pipelineResources = new PipelineResources($container->resolveGL());
@@ -128,6 +137,10 @@ class Game implements GameLoopDelegate
      */
     public function update() : void
     {
+        // reset the input context for the next tick
+        $this->inputContext->reset();
+
+        // poll for new events
         $this->window->pollEvents();
 
         // update the current scene

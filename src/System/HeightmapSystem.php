@@ -38,7 +38,7 @@ class HeightmapSystem implements SystemInterface
     )
     {
         $this->heightmapRenderer = new GPUHeightmapRenderer($gl, 4096, 4096);
-        $this->heightmapRenderer->ppu = 2.0;
+        $this->heightmapRenderer->ppu = 4.0;
     }
 
     /**

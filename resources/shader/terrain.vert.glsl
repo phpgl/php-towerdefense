@@ -17,7 +17,6 @@ void main()
     v_vposition = view * world_pos;
 
     vec3 n = normalize(mat3(model) * a_normal);
-    
     v_normal = n;
     
     gl_Position = projection * view * world_pos;

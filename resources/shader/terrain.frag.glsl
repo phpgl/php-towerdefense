@@ -21,7 +21,7 @@ void main()
 
     // base color
     // snowy mountain tops
-    if (height > 170.0f) {
+    if (height > 150.0f) {
         basecolor = vec3(0.955, 0.951, 0.943);
     }
 

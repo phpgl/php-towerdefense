@@ -18,6 +18,11 @@ import app/config
 import app/core
 
 /**
+ * Input / action & control mapping
+ */
+import app/input
+
+/**
  * Signal handlers
  */
 import app/signals
