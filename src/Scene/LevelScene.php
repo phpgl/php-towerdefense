@@ -11,6 +11,7 @@ use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
 use TowerDefense\System\AnimationSystem;
+use TowerDefense\System\CameraSystem;
 use TowerDefense\System\HeightmapSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\Picker\DevEntityPicker;
@@ -24,7 +25,6 @@ use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\RenderTarget;
 use VISU\OS\Key;
 use VISU\Signals\Input\KeySignal;
-use VISU\System\VISUCameraSystem;
 use VISU\System\VISULowPoly\LPModel;
 use VISU\System\VISULowPoly\LPObjLoader;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
@@ -47,7 +47,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * ------------------------------------------------------------------------
      */
     private VISULowPolyRenderingSystem $renderingSystem;
-    private VISUCameraSystem $cameraSystem;
+    private CameraSystem $cameraSystem;
     private HeightmapSystem $heightmapSystem;
     private AircraftSystem $aircraftSystem;
     private AnimationSystem $animationSystem;
@@ -100,8 +100,8 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         
 
         // basic camera system
-        $this->cameraSystem = new VISUCameraSystem(
-            $this->container->resolveInput(),
+        $this->cameraSystem = new CameraSystem(
+            $this->container->resolveInput(), 
             $this->container->resolveVisuDispatcher()
         );
 
@@ -220,9 +220,10 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $renderable->model = $this->loadedObjects['satelliteDish_large.obj'];
         $transform = $this->entities->attach($dishObject, new Transform);
         $transform->scale = $transform->scale * 10;
-        $transform->position->y = 55;
-        $transform->position->x = 100;
-        $transform->position->z = -50;
+        $transform->position->y = 0;
+        $transform->position->x = 10;
+        $transform->position->z = 10;
+        $transform->setParent($this->entities, $someObject);   
 
         // add aircraft
         $initialPosition = new Vec3(0.0, 250.0, -250.0);

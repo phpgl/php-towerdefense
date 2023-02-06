@@ -15,7 +15,7 @@ void main()
     float height = v_position.y;
 
     // grassy plains green color
-    if (height > 0.0f) {
+    if (height > -50.0f) {
         basecolor = vec3(0.638, 0.658, 0.467);
     }
 
