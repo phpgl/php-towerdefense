@@ -102,6 +102,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // basic camera system
         $this->cameraSystem = new CameraSystem(
             $this->container->resolveInput(), 
+            $this->container->resolveInputContext(),
             $this->container->resolveVisuDispatcher()
         );
 
