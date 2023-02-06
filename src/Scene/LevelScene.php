@@ -10,7 +10,6 @@ use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\AircraftSystem;
-use TowerDefense\System\AnimationSystem;
 use TowerDefense\System\CameraSystem;
 use TowerDefense\System\HeightmapSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
@@ -28,6 +27,7 @@ use VISU\Signals\Input\KeySignal;
 use VISU\System\VISULowPoly\LPModel;
 use VISU\System\VISULowPoly\LPObjLoader;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
+use VISU\System\VISUTransitionAnimationSystem;
 
 abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 {
@@ -50,7 +50,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private CameraSystem $cameraSystem;
     private HeightmapSystem $heightmapSystem;
     private AircraftSystem $aircraftSystem;
-    private AnimationSystem $animationSystem;
+    private VISUTransitionAnimationSystem $animationSystem;
 
     /**
      * Object loader (3D models)
@@ -115,7 +115,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
             ]
         );
 
-        $this->animationSystem = new AnimationSystem(60); // @TODO get from game loop
+        $this->animationSystem = new VISUTransitionAnimationSystem(60); // @TODO get from game loop
         $this->aircraftSystem = new AircraftSystem($this->loadedObjects, $this->entities, $this->container->resolveVisuDispatcher(), $this->container->resolveInput());
         $this->animationSystem->addAnimationDelegate($this->aircraftSystem);
 

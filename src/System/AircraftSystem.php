@@ -5,28 +5,28 @@ namespace TowerDefense\System;
 use GL\Math\GLM;
 use GL\Math\Quat;
 use GL\Math\Vec3;
-use TowerDefense\Animation\AnimationEasingType;
-use TowerDefense\Animation\AnimationSequence;
-use TowerDefense\Animation\AnimationSystemDelegate;
-use TowerDefense\Animation\AnimationUtil;
-use TowerDefense\Animation\BaseAnimation;
-use TowerDefense\Animation\BaseAnimationContainer;
-use TowerDefense\Animation\TransformOrientationAnimation;
-use TowerDefense\Animation\TransformPositionAnimation;
-use TowerDefense\Animation\TransformScaleAnimation;
-use TowerDefense\Component\AnimationComponent;
 use TowerDefense\Component\HeightmapComponent;
-use TowerDefense\Geometry\Vec3Util;
+use VISU\Animation\Transition\AnimationEasingType;
+use VISU\Animation\Transition\AnimationSequence;
+use VISU\Animation\Transition\AnimationUtil;
+use VISU\Animation\Transition\BaseAnimation;
+use VISU\Animation\Transition\BaseAnimationContainer;
+use VISU\Animation\Transition\TransformOrientationAnimation;
+use VISU\Animation\Transition\TransformPositionAnimation;
+use VISU\Animation\Transition\TransformScaleAnimation;
+use VISU\Component\AnimationComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
+use VISU\Geo\Math;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\OS\Input;
 use VISU\Signal\Dispatcher;
 use VISU\Signals\Input\MouseClickSignal;
+use VISU\System\VISUTransitionAnimationSystemDelegate;
 
-class AircraftSystem implements SystemInterface, AnimationSystemDelegate
+class AircraftSystem implements SystemInterface, VISUTransitionAnimationSystemDelegate
 {
     /**
      * @var int[] $aircrafts The list of aircraft entity ids
@@ -125,7 +125,7 @@ class AircraftSystem implements SystemInterface, AnimationSystemDelegate
         // set the new rotated orientation
         $height = $position->y;
         $position->y = $transform->position->y; // lock height to current height
-        $targetOrientation = Vec3Util::quatFacingForwardTowardsTarget($transform->position, $position, Transform::worldBackward(), Transform::worldUp());
+        $targetOrientation = Math::quatFacingForwardTowardsTarget($transform->position, $position, Transform::worldBackward(), Transform::worldUp());
 
         // set the target height of the terrain + 10 "meters"
         $position->y = $height + 10.0;
