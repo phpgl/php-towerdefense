@@ -74,8 +74,10 @@ class DebugTextOverlay
     {
         $gameLoop = $this->container->resolveGameLoopMain();
 
-        $row = "FPS: " . round($gameLoop->getAverageFps());
-        $row .= " | ATC: " . sprintf("%.2f", $gameLoop->getAverageTickCount());
+        $row =  str_pad("FPS: " . round($gameLoop->getAverageFps()), 8);
+        $row .= str_pad(" | TC: " . sprintf("%.2f", $gameLoop->getAverageTickCount()), 10);
+        $row .= str_pad(" | UT: " . $gameLoop->getAverageTickTimeFormatted(), 18);
+        $row .= str_pad(" | FT: " . $gameLoop->getAverageFrameTimeFormatted(), 16);
         $row .= " | delta: " . sprintf("%.4f", $deltaTime);
     
         return $row;

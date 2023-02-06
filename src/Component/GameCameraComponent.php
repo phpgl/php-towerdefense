@@ -68,6 +68,8 @@ class GameCameraComponent
     public function __construct()
     {
         $this->focusPoint = new Vec3(0.0);
+        $this->focusPointVelocity = new Vec3(0.0);
+        $this->rotationVelocity = new Vec3(0.0);
     }
 
     /**

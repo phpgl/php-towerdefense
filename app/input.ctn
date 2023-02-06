@@ -30,14 +30,28 @@
     })
 
 /**
+ * Camera controls
+ */
+:input.action.map.game_camera: {
+    camera_move_forward: '@Key::W',
+    camera_move_backward: '@Key::S',
+    camera_move_left: '@Key::A',
+    camera_move_right: '@Key::D',
+    camera_zoom_in: '@Key::E',
+    camera_zoom_out: '@Key::Q',
+}
+
+/**
  * Level Editor
  */
 @input.actions.level_editor: VISU\OS\InputActionMap()
+    - importArrayMap(:input.action.map.game_camera)
     - importArrayMap({
         'create_object': '@Key::C',
     })
 
 @input.actions.level_editor.selected: VISU\OS\InputActionMap()
+    - importArrayMap(:input.action.map.game_camera)
     - importArrayMap({
         place: '#click',
         rotate_left: '@Key::COMMA',
