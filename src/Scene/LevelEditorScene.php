@@ -5,6 +5,7 @@ namespace TowerDefense\Scene;
 use GameContainer;
 use GL\Math\Vec3;
 use TowerDefense\Component\HeightmapComponent;
+use TowerDefense\Debug\DebugServer;
 use TowerDefense\Debug\DebugTextOverlay;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\D3D;
@@ -21,6 +22,8 @@ class LevelEditorScene extends LevelScene
      * The currently selected entity
      */
     private int $selectedEntity = 0;
+
+    private ?DebugServer $debugServer = null;
 
     /**
      * Returns the scenes name
@@ -44,6 +47,16 @@ class LevelEditorScene extends LevelScene
 
         // switch to the editor input context
         $this->container->resolveInputContext()->switchTo('level_editor');
+
+        // start debug server
+        $this->debugServer = new DebugServer();
+        $this->debugServer->start();
+    }
+
+    public function __destruct()
+    {
+        // stop debug server
+        $this->debugServer->stop();
     }
 
     /**
@@ -65,6 +78,9 @@ class LevelEditorScene extends LevelScene
     public function update() : void
     {
         parent::update();
+
+        // process debug server
+        $this->debugServer->process();
 
         $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
 
