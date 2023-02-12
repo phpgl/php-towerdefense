@@ -2,6 +2,7 @@
 
 namespace TowerDefense\Component;
 
+use GL\Math\Vec2;
 use GL\Math\Vec3;
 
 class GameCameraComponent
@@ -17,9 +18,14 @@ class GameCameraComponent
     public Vec3 $focusPointVelocity;
 
     /**
-     * The velocity gained when moving the focus point
+     * The velocity gained when moving the focus when the camera is far away
      */
-    public float $focusPointSpeed = 3.0;
+    public float $focusPointSpeedFar = 0.5;
+
+    /**
+     * The velocity gained when moving the focus when the camera is close
+     */
+    public float $focusPointSpeedClose = 0.01;
 
     /**
      * The damp applied to the focus move velcoity each update
@@ -29,12 +35,12 @@ class GameCameraComponent
     /**
      * Distance from which the camera is looking at the point
      */
-    public float $focusRadius = 250.0;
+    public float $focusRadius = 50.0;
 
     /**
      * Max distance
      */
-    public float $focusRadiusMax = 1000.0;
+    public float $focusRadiusMax = 250.0;
 
     /**
      * The speed of zooming in and out
@@ -42,9 +48,14 @@ class GameCameraComponent
     public float $focusRadiusZoomFactor = 100.0;
 
     /**
+     * Rotation around the focus point
+     */
+    public Vec2 $rotation;
+
+    /**
      * The current rotatinal velcoity the camera is moving around the focus point
      */
-    public Vec3 $rotationVelocity;
+    public Vec2 $rotationVelocity;
 
     /**
      * The amount the velocity is dumpen each update
@@ -69,7 +80,8 @@ class GameCameraComponent
     {
         $this->focusPoint = new Vec3(0.0);
         $this->focusPointVelocity = new Vec3(0.0);
-        $this->rotationVelocity = new Vec3(0.0);
+        $this->rotationVelocity = new Vec2(0.0);
+        $this->rotation = new Vec2(0.0);
     }
 
     /**
