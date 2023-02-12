@@ -6,6 +6,7 @@ use GameContainer;
 use GL\Math\Vec3;
 use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Debug\DebugTextOverlay;
+use VISU\Component\Dev\GizmoComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\D3D;
 use VISU\Geo\Transform;
@@ -14,6 +15,7 @@ use VISU\OS\Key;
 use VISU\OS\MouseButton;
 use VISU\Signals\Input\KeySignal;
 use VISU\Signals\Input\MouseClickSignal;
+use VISU\System\Dev\GizmoEditorSystem;
 
 class LevelEditorScene extends LevelScene
 {
@@ -21,6 +23,11 @@ class LevelEditorScene extends LevelScene
      * The currently selected entity
      */
     private int $selectedEntity = 0;
+
+    /**
+     * Systems
+     */
+    private GizmoEditorSystem $gizmoEditorSystem;
 
     /**
      * Returns the scenes name
@@ -44,6 +51,17 @@ class LevelEditorScene extends LevelScene
 
         // switch to the editor input context
         $this->container->resolveInputContext()->switchTo('level_editor');
+
+        // add a dev gizmo system
+        $this->gizmoEditorSystem = new GizmoEditorSystem(
+            $container->resolveGL(),
+            $container->resolveShaders()
+        );
+
+        // bind additional systems
+        $this->bindSystems([
+            $this->gizmoEditorSystem,
+        ]);
     }
 
     /**
@@ -55,6 +73,10 @@ class LevelEditorScene extends LevelScene
     public function load() : void
     {
         parent::load();
+
+        // create some random transform to move around
+        $entity = $this->entities->firstWith(DynamicRenderableModel::class);
+        $this->entities->attach($entity, new GizmoComponent);
     }
 
     /**
@@ -65,6 +87,9 @@ class LevelEditorScene extends LevelScene
     public function update() : void
     {
         parent::update();
+
+        // update systems
+        $this->gizmoEditorSystem->update($this->entities);
 
         $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
 
@@ -131,6 +156,9 @@ class LevelEditorScene extends LevelScene
     public function render(RenderContext $context) : void
     {
         parent::render($context);
+
+        // draw systems
+        $this->gizmoEditorSystem->render($this->entities, $context);
 
         static $origin = new Vec3(50, 00, 50);
         static $p0 = new Vec3(0, 0, 0);

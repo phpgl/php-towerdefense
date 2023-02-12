@@ -169,8 +169,5 @@ class CameraSystem extends VISUCameraSystem
             $camera->transform->position->y, 
             $heightmap->heightmap->getHeightAt($camera->transform->position->x, $camera->transform->position->z) + 1.0 // min 1.0 above the terrain
         );
-
-        // var_dump((string) $camera->transform->position);
-        // var_dump((string) $gameCamera->rotation);
     }
 }
