@@ -31,3 +31,11 @@
     - enableVISUIncludes()
     - addVISUShaders()
     - scanShaderDirectory(:visu.path.resources.shader)
+
+/**
+ * Debug server
+ */
+@debug.server: TowerDefense\Debug\DebugServer(
+    :debug.server_ip, 
+    :debug.server_port
+)

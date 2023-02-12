@@ -5,16 +5,12 @@ namespace TowerDefense\Scene;
 use GameContainer;
 use GL\Math\Vec3;
 use TowerDefense\Component\HeightmapComponent;
-use TowerDefense\Debug\DebugServer;
 use TowerDefense\Debug\DebugTextOverlay;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\D3D;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\OS\Key;
-use VISU\OS\MouseButton;
-use VISU\Signals\Input\KeySignal;
-use VISU\Signals\Input\MouseClickSignal;
 
 class LevelEditorScene extends LevelScene
 {
@@ -23,12 +19,10 @@ class LevelEditorScene extends LevelScene
      */
     private int $selectedEntity = 0;
 
-    private ?DebugServer $debugServer = null;
-
     /**
      * Returns the scenes name
      */
-    public function getName() : string
+    public function getName(): string
     {
         return 'TowerDefense Level [EDITOR]';
     }
@@ -38,8 +32,7 @@ class LevelEditorScene extends LevelScene
      */
     public function __construct(
         protected GameContainer $container,
-    )
-    {
+    ) {
         parent::__construct($container);
 
         // enable the dev picker
@@ -49,14 +42,19 @@ class LevelEditorScene extends LevelScene
         $this->container->resolveInputContext()->switchTo('level_editor');
 
         // start debug server
-        $this->debugServer = new DebugServer();
-        $this->debugServer->start();
+        if ($this->container->get('debug.server')) {
+            $debugServer = $this->container->get('debug.server');
+            $debugServer->start();
+        }
     }
 
     public function __destruct()
     {
         // stop debug server
-        $this->debugServer->stop();
+        if ($this->container->get('debug.server')) {
+            $debugServer = $this->container->get('debug.server');
+            $debugServer->stop();
+        }
     }
 
     /**
@@ -65,7 +63,7 @@ class LevelEditorScene extends LevelScene
      * 
      * @return void 
      */
-    public function load() : void
+    public function load(): void
     {
         parent::load();
     }
@@ -75,25 +73,27 @@ class LevelEditorScene extends LevelScene
      * This is the place where you should update your game state.
      * @return void 
      */
-    public function update() : void
+    public function update(): void
     {
         parent::update();
 
         // process debug server
-        $this->debugServer->process();
+        if ($this->container->get('debug.server')) {
+            $debugServer = $this->container->get('debug.server');
+            $debugServer->process($this->entities);
+        }
 
         $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
 
         // get input context
         $inputContext = $this->container->resolveInputContext();
-        
+
         // always enable raycasting
         $heightmapComponent->enableRaycasting = true;
 
         // if an entity is selected and has a transform component
         // we update the position until the user clicks the mouse button again
-        if ($this->entities->valid($this->selectedEntity) && $this->entities->has($this->selectedEntity, Transform::class)) 
-        {
+        if ($this->entities->valid($this->selectedEntity) && $this->entities->has($this->selectedEntity, Transform::class)) {
             $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
             // update the position to heightmap cursor position
@@ -116,7 +116,7 @@ class LevelEditorScene extends LevelScene
             // copy
             if ($inputContext->actions->didButtonRelease('copy')) {
                 $copy = $this->entities->create();
-                foreach($this->entities->components($this->selectedEntity) as $component) {
+                foreach ($this->entities->components($this->selectedEntity) as $component) {
                     $this->entities->attach($copy, clone $component);
                 }
                 $this->selectedEntity = $copy;
@@ -132,8 +132,7 @@ class LevelEditorScene extends LevelScene
             if ($inputContext->actions->didButtonRelease('place')) {
                 $this->deselectEntity();
             }
-        }
-        else {
+        } else {
             $this->deselectEntity();
         }
     }
@@ -144,7 +143,7 @@ class LevelEditorScene extends LevelScene
      * 
      * @param RenderContext $context
      */
-    public function render(RenderContext $context) : void
+    public function render(RenderContext $context): void
     {
         parent::render($context);
 
@@ -184,18 +183,17 @@ class LevelEditorScene extends LevelScene
 
         // hightlight the selected entity
         // by rendering an AABB around it
-        if ($this->entities->valid($this->selectedEntity)) 
-        {
+        if ($this->entities->valid($this->selectedEntity)) {
             DebugTextOverlay::debugString("Entity {$this->selectedEntity} selected, press '.' & ',' to rotate, scale with 'k' & 'l', copy with 'c', delete with 'backspace'");
 
             if (
-                $this->entities->has($this->selectedEntity, DynamicRenderableModel::class) && 
+                $this->entities->has($this->selectedEntity, DynamicRenderableModel::class) &&
                 $this->entities->has($this->selectedEntity, Transform::class)
             ) {
                 $renderable = $this->entities->get($this->selectedEntity, DynamicRenderableModel::class);
                 $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
-                foreach($renderable->model->meshes as $mesh) {
+                foreach ($renderable->model->meshes as $mesh) {
                     D3D::aabb($transform->position, $mesh->aabb->min * $transform->scale, $mesh->aabb->max * $transform->scale, D3D::$colorGreen);
                 }
             }
@@ -228,7 +226,7 @@ class LevelEditorScene extends LevelScene
             $this->deselectEntity();
             return;
         }
-        
+
         echo "Entity selected: $entityId\n";
         $this->selectEntity($entityId);
     }

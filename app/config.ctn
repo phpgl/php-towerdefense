@@ -9,3 +9,7 @@
 // defaults
 :window.default_widht: 1280
 :window.default_height: 720
+
+// debug server
+:debug.server_ip: '127.0.0.1'
+:debug.server_port: 8145
