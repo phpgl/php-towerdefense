@@ -2,19 +2,20 @@
 
 namespace TowerDefense\System;
 
-use GL\Math\Mat4;
-use GL\Math\Vec3;
-use GL\Math\Vec4;
+use GL\Math\GLM;
+use GL\Math\Quat;
 use TowerDefense\Component\GameCameraComponent;
-use VISU\D3D;
+use TowerDefense\Component\HeightmapComponent;
 use VISU\ECS\EntitiesInterface;
 use VISU\Geo\Math;
 use VISU\Geo\Transform;
 use VISU\Graphics\Camera;
 use VISU\OS\Input;
 use VISU\OS\InputContextMap;
+use VISU\OS\MouseButton;
 use VISU\Signal\Dispatcher;
 use VISU\Signals\Input\CursorPosSignal;
+use VISU\Signals\Input\ScrollSignal;
 use VISU\System\VISUCameraSystem;
 
 class CameraSystem extends VISUCameraSystem
@@ -22,7 +23,7 @@ class CameraSystem extends VISUCameraSystem
     /**
      * Default camera mode is game in the game... 
      */
-    protected int $visuCameraMode = self::CAMERA_MODE_FLYING;
+    protected int $visuCameraMode = self::CAMERA_MODE_GAME;
 
     /**
      * Constructor
@@ -70,10 +71,25 @@ class CameraSystem extends VISUCameraSystem
     {
         $gameCamera = $entities->getSingleton(GameCameraComponent::class);
 
-        if ($this->input->isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
-            $gameCamera->rotationVelocity->x += $signal->offsetX * $gameCamera->rotationVelocityMouse;
-            $gameCamera->rotationVelocity->y += $signal->offsetY * $gameCamera->rotationVelocityMouse;
+        if ($this->input->isMouseButtonPressed(MouseButton::LEFT)) {
+            $gameCamera->rotationVelocity->x = $gameCamera->rotationVelocity->x + ($signal->offsetX * $gameCamera->rotationVelocityMouse);
+            $gameCamera->rotationVelocity->y = $gameCamera->rotationVelocity->y + ($signal->offsetY * $gameCamera->rotationVelocityMouse);
         }
+    }
+
+    /**
+     * Override this method to handle the scroll wheel in game mode
+     * 
+     * @param ScrollSignal $signal
+     * @return void 
+     */
+    protected function handleScrollVISUGame(EntitiesInterface $entities, ScrollSignal $signal) : void
+    {
+        $gameCamera = $entities->getSingleton(GameCameraComponent::class);
+
+        $c = $gameCamera->focusRadius / $gameCamera->focusRadiusMax;
+        $newRadius = $gameCamera->focusRadius + ($signal->y * $c * $gameCamera->focusRadiusZoomFactor);
+        $gameCamera->setFocusRadius($newRadius);
     }
 
     /**
@@ -83,61 +99,75 @@ class CameraSystem extends VISUCameraSystem
      */
     public function updateGameCamera(EntitiesInterface $entities, Camera $camera) : void
     {
+        // skip until we have a heightmap
+        if (!$entities->hasSingleton(HeightmapComponent::class)) {
+            return;
+        }
+
         $gameCamera = $entities->getSingleton(GameCameraComponent::class);
+        $heightmap = $entities->getSingleton(HeightmapComponent::class);
 
-        if ($this->inputContext->actions->isButtonDown('camera_move_forward')) {
-            $gameCamera->focusPoint->z = $gameCamera->focusPoint->z + 1.0;
-        } elseif ($this->inputContext->actions->isButtonDown('camera_move_backward')) {
-            $gameCamera->focusPoint->z = $gameCamera->focusPoint->z - 1.0;
+        // calulate the focus point velocity update
+        $c = $gameCamera->focusRadius / $gameCamera->focusRadiusMax;
+        $speed = Math::lerp($gameCamera->focusPointSpeedClose, $gameCamera->focusPointSpeedFar, $c);
+
+        if ($this->inputContext->actions->isButtonDown('camera_move_forward')) 
+        {
+            $dir = Math::projectOnPlane($camera->transform->dirForward(), Transform::worldUp());
+            $dir->normalize();
+
+            $gameCamera->focusPointVelocity = $gameCamera->focusPointVelocity + ($dir * $speed);
+        }
+        elseif ($this->inputContext->actions->isButtonDown('camera_move_backward')) 
+        {
+            $dir = Math::projectOnPlane($camera->transform->dirBackward(), Transform::worldUp());
+            $dir->normalize();
+
+            $gameCamera->focusPointVelocity = $gameCamera->focusPointVelocity + ($dir * $speed);
         }
 
+        if ($this->inputContext->actions->isButtonDown('camera_move_left')) 
+        {
+            $dir = Math::projectOnPlane($camera->transform->dirLeft(), Transform::worldUp());
+            $dir->normalize();
 
-        // $gameCamera->focusPoint = new Vec3(sin(glfwGetTime()) * 512, 0.0, -512.0);
+            $gameCamera->focusPointVelocity = $gameCamera->focusPointVelocity + ($dir * $speed);
+        }
+        elseif ($this->inputContext->actions->isButtonDown('camera_move_right')) 
+        {
+            $dir = Math::projectOnPlane($camera->transform->dirRight(), Transform::worldUp());
+            $dir->normalize();
 
-        $camera->transform->lookAt($gameCamera->focusPoint);
-
-        D3D::cross($gameCamera->focusPoint, D3D::$colorRed, 50.0);
-
-        return;
-        if ($camera->transform->position == new Vec3(0.0, 0.0, 0.0) || $camera->transform->position == $gameCamera->focusPoint) {
-            $camera->transform->position->z = $camera->transform->position->z - 1.0;
+            $gameCamera->focusPointVelocity = $gameCamera->focusPointVelocity + ($dir * $speed);
         }
 
-        $camera->transform->lookAt($gameCamera->focusPoint);
-        $camera->transform->position = $gameCamera->focusPoint->copy();
-        $camera->transform->moveForward($gameCamera->focusRadius);
+        // update the focus point itself
+        $gameCamera->focusPoint = $gameCamera->focusPoint + $gameCamera->focusPointVelocity;
+        $gameCamera->focusPointVelocity = $gameCamera->focusPointVelocity * $gameCamera->focusPointVelocityDamp;
 
-        $pos = new Vec4($camera->transform->position->x, $camera->transform->position->y, $camera->transform->position->z, 1.0);
-        $focus = new Vec4($gameCamera->focusPoint->x, $gameCamera->focusPoint->y, $gameCamera->focusPoint->z, 1.0);
+        // y is always the height of the terrain
+        $gameCamera->focusPoint->y = $heightmap->heightmap->getHeightAt($gameCamera->focusPoint->x, $gameCamera->focusPoint->z);
+        
+        // update the cameras rotation in euler angles
+        $gameCamera->rotation = $gameCamera->rotation + $gameCamera->rotationVelocity;
 
-        $xangle = deg2rad(-$gameCamera->rotationVelocity->x);
-        $yangle = deg2rad($gameCamera->rotationVelocity->y);
+        // clamp the rotation on the y axis
+        $gameCamera->rotation->y = Math::clamp($gameCamera->rotation->y, -90.0, 90.0);
 
+        // apply dampening to the rotation
         $gameCamera->rotationVelocity = $gameCamera->rotationVelocity * $gameCamera->rotationVelocityDamp;
 
-        $cosAngle = Vec3::dot($camera->transform->dirForward(), Transform::worldUp());
-        if (($cosAngle * Math::sgn($yangle)) > 0.99) {
-            $yangle = 0;
-        }
+        // use the eular angles to to rotate the camera in the correct direction
+        $camera->transform->position = $gameCamera->focusPoint->copy();
+        $camera->transform->orientation = new Quat;
+        $camera->transform->orientation->rotate(GLM::radians($gameCamera->rotation->x), Transform::worldUp());
+        $camera->transform->orientation->rotate(GLM::radians($gameCamera->rotation->y), Transform::worldRight());
+        $camera->transform->moveBackward($gameCamera->focusRadius);
 
-        $right = $camera->transform->dirRight();
-        $right->normalize();
-
-        $tmp = new Mat4;
-        $tmp->rotate($yangle, $right);
-        $tmp = $tmp * ($pos - $focus);
-        $tmp = $tmp + $focus;
-
-        $pos = $tmp;
-
-        $tmp = new Mat4;
-        $tmp->rotate($xangle, Transform::worldUp());
-        $tmp = $tmp * ($pos - $focus);
-        $tmp = $tmp + $focus;
-
-        $pos = $tmp;
-
-        $camera->transform->position = new Vec3($pos->x, $pos->y, $pos->z);
-        $camera->transform->lookAt($gameCamera->focusPoint);
+        // ensure the camera is always above the terrain
+        $camera->transform->position->y = max(
+            $camera->transform->position->y, 
+            $heightmap->heightmap->getHeightAt($camera->transform->position->x, $camera->transform->position->z) + 1.0 // min 1.0 above the terrain
+        );
     }
 }

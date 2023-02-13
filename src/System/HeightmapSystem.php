@@ -48,7 +48,6 @@ class HeightmapSystem implements SystemInterface
      */
     public function register(EntitiesInterface $entities) : void
     {
-        $entities->setSingleton(new HeightmapComponent);
     }
 
     /**
@@ -68,6 +67,10 @@ class HeightmapSystem implements SystemInterface
      */
     public function update(EntitiesInterface $entities) : void
     {
+        if (!$entities->hasSingleton(HeightmapComponent::class)) {
+            $entities->setSingleton(new HeightmapComponent);
+        }
+
         $heightmapComponent = $entities->getSingleton(HeightmapComponent::class);
 
         if ($heightmapComponent->requiresCapture) {
