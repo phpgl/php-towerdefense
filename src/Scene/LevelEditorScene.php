@@ -55,7 +55,9 @@ class LevelEditorScene extends LevelScene
         // add a dev gizmo system
         $this->gizmoEditorSystem = new GizmoEditorSystem(
             $container->resolveGL(),
-            $container->resolveShaders()
+            $container->resolveShaders(),
+            $container->resolveVisuDispatcher(),
+            $container->resolveInput()
         );
 
         // bind additional systems
