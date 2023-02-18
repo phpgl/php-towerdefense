@@ -37,5 +37,6 @@
  */
 @debug.server: TowerDefense\Debug\DebugServer(
     :debug.server_ip, 
-    :debug.server_port
+    :debug.server_port,
+    @visu.dispatcher
 )

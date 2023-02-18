@@ -4,6 +4,9 @@ namespace TowerDefense\Debug;
 
 use VISU\ECS\EntitiesInterface;
 use VISU\Geo\Transform;
+use VISU\Runtime\DebugConsole;
+use VISU\Signal\Dispatcher;
+use VISU\Signals\Runtime\ConsoleCommandSignal;
 
 /**
  * Class DebugServer
@@ -17,6 +20,9 @@ class DebugServer
     private ?object $socket = null; // the server socket
     private array $clients = []; // the client sockets
 
+    private Dispatcher $dispatcher; // the signal dispatcher
+    private ?DebugConsole $console = null; // the optional debug console
+
     /**
      * DebugServer constructor.
      * 
@@ -24,10 +30,16 @@ class DebugServer
      * @param int $port 
      * @return void 
      */
-    public function __construct(string $address, int $port)
+    public function __construct(string $address, int $port, Dispatcher $dispatcher)
     {
         $this->address = $address;
         $this->port = $port;
+        $this->dispatcher = $dispatcher;
+    }
+
+    public function setDebugConsole(DebugConsole $console): void
+    {
+        $this->console = $console;
     }
 
     /**
@@ -184,7 +196,8 @@ class DebugServer
                 $response['response'] = [
                     "disconnect",
                     "available_commands",
-                    "list_transform_components"
+                    "list_transform_components",
+                    "console_command"
                 ];
                 break;
             case 'list_transform_components':
@@ -201,6 +214,23 @@ class DebugServer
                     ];
                 }
                 $response['response'] = $transformComponents;
+                break;
+            case 'console_command':
+                // trigger a console command
+                if ($this->console == null) {
+                    // debug console not available
+                    $response['error'] = "Debug console not available";
+                    break;
+                }
+                if (!isset($inputMessageJSON['console_command']) || strlen($inputMessageJSON['console_command']) < 1) {
+                    // missing console command
+                    $response['error'] = "Missing console command";
+                    break;
+                }
+                // dispatch the console command signal
+                $commandSignal = new ConsoleCommandSignal($inputMessageJSON['console_command'], $this->console);
+                $this->dispatcher->dispatch(DebugConsole::EVENT_CONSOLE_COMMAND, $commandSignal);
+                $response['response'] = "Console command triggered";
                 break;
             default:
                 // unknown command

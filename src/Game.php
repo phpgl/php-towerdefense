@@ -103,6 +103,11 @@ class Game implements GameLoopDelegate
         // initialize the debug renderers
         $this->dbgText = new DebugTextOverlay($container);
         $this->dbgConsole = new DebugConsole($container->resolveGL(), $container->resolveInput(), $container->resolveVisuDispatcher());
+        if ($this->container->get('debug.server')) {
+            // set the debug console on the debug server if it is available
+            $debugServer = $this->container->get('debug.server');
+            $debugServer->setDebugConsole($this->dbgConsole);
+        }
         $this->dbg3D = new Debug3DRenderer($container->resolveGL());
         Debug3DRenderer::setGlobalInstance($this->dbg3D);
 

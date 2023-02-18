@@ -21,10 +21,15 @@ do {
 
     // prepare the json message
     $msg = trim(fgets($stdin));
-    $msgJSON = json_encode([
+    $request = [
         'command' => $msg,
         'request_id' => $msgCounter++
-    ]);
+    ];
+    if (stripos($msg, 'console_command') === 0) {
+        $request['command'] = 'console_command';
+        $request['console_command'] = trim(substr($msg, 16));
+    }
+    $msgJSON = json_encode($request);
 
     echo "\nRequest:\n$msgJSON\n\n";
 
