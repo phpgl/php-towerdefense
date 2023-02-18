@@ -55,7 +55,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * 
      * @var array<string, LPModel>
      */
-    private array $loadedObjects = [];
+    protected array $loadedObjects = [];
 
     /**
      * Dev entity picker, for debug and level editor

@@ -17,6 +17,7 @@ use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\Graphics\ShaderProgram;
 use VISU\OS\InputContextMap;
 use VISU\OS\Window;
+use VISU\Runtime\DebugConsole;
 use VISU\Runtime\GameLoopDelegate;
 
 class Game implements GameLoopDelegate
@@ -55,6 +56,11 @@ class Game implements GameLoopDelegate
      * Debug 3D renderer
      */
     private Debug3DRenderer $dbg3D;
+
+    /**
+     * Debug Console
+     */
+    private DebugConsole $dbgConsole;
 
     /**
      * Pipeline resource manager
@@ -96,6 +102,7 @@ class Game implements GameLoopDelegate
 
         // initialize the debug renderers
         $this->dbgText = new DebugTextOverlay($container);
+        $this->dbgConsole = new DebugConsole($container->resolveGL(), $container->resolveInput(), $container->resolveVisuDispatcher());
         $this->dbg3D = new Debug3DRenderer($container->resolveGL());
         Debug3DRenderer::setGlobalInstance($this->dbg3D);
 
@@ -180,6 +187,7 @@ class Game implements GameLoopDelegate
         // render debug text
         $this->dbg3D->attachPass($pipeline, $backbuffer);
         $this->dbgText->attachPass($pipeline, $backbuffer, $deltaTime);
+        $this->dbgConsole->attachPass($pipeline, $this->pipelineResources, $backbuffer);
 
         // execute the pipeline
         $pipeline->execute($this->tick++);

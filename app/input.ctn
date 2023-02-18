@@ -54,6 +54,7 @@
     - importArrayMap(:input.action.map.game_camera)
     - importArrayMap({
         place: '#click',
+        place_height: '@Key::F'
         rotate_left: '@Key::COMMA',
         rotate_right: '@Key::PERIOD',
         scale_up: '@Key::K',
