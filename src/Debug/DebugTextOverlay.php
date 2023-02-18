@@ -96,7 +96,8 @@ class DebugTextOverlay
 
         // Add current FPS plus the average tick count and the compensation
         $this->rows[] = $this->gameLoopMetrics($compensation);
-        $this->rows[] = "Scene: " . $this->container->resolveGame()->getCurrentScene()->getName();
+        $this->rows[] = "Scene: " . $this->container->resolveGame()->getCurrentScene()->getName() . 
+            ' | Press CTRL + C to open the console';
 
         // add global rows
         $this->rows = array_merge($this->rows, self::$globalRows);

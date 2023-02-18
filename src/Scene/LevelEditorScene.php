@@ -12,9 +12,8 @@ use VISU\D3D;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\OS\Key;
-use VISU\OS\MouseButton;
-use VISU\Signals\Input\KeySignal;
-use VISU\Signals\Input\MouseClickSignal;
+use VISU\Runtime\DebugConsole;
+use VISU\Signals\Runtime\ConsoleCommandSignal;
 use VISU\System\Dev\GizmoEditorSystem;
 
 class LevelEditorScene extends LevelScene
@@ -64,6 +63,31 @@ class LevelEditorScene extends LevelScene
             $this->gizmoEditorSystem,
         ]);
 
+        // listen for editor signals
+        $this->container->resolveVisuDispatcher()->register(DebugConsole::EVENT_CONSOLE_COMMAND, function (ConsoleCommandSignal $signal) {
+            if (!$signal->isAction('editor.spawn')) {
+                return;
+            }
+
+            if (!$objName = $signal->commandParts[1] ?? null) {
+                $signal->console->writeLine('Usage: editor.spawn <object_name>');
+                return;
+            }
+
+            if (!isset($this->loadedObjects[$objName])) {
+                $signal->console->writeLine('Object not found: ' . $objName);
+                return;
+            }
+
+            $newObj = $this->entities->create();
+            $renderable = $this->entities->attach($newObj, new DynamicRenderableModel);
+            $renderable->model = $this->loadedObjects[$objName]; // <- render the turret
+            $transform = $this->entities->attach($newObj, new Transform);
+            $transform->scale = $transform->scale * 10;
+
+            $this->selectedEntity = $newObj;
+        });
+
         // start debug server
         if ($this->container->get('debug.server')) {
             $debugServer = $this->container->get('debug.server');
@@ -91,8 +115,8 @@ class LevelEditorScene extends LevelScene
         parent::load();
 
         // create some random transform to move around
-        $entity = $this->entities->firstWith(DynamicRenderableModel::class);
-        $this->entities->attach($entity, new GizmoComponent);
+        // $entity = $this->entities->firstWith(DynamicRenderableModel::class);
+        // $this->entities->attach($entity, new GizmoComponent);
     }
 
     /**
@@ -124,17 +148,27 @@ class LevelEditorScene extends LevelScene
         // if an entity is selected and has a transform component
         // we update the position until the user clicks the mouse button again
         if ($this->entities->valid($this->selectedEntity) && $this->entities->has($this->selectedEntity, Transform::class)) {
+            // if an entity is selected ensure it has a gizmo attached to it 
+            if (!$this->entities->has($this->selectedEntity, GizmoComponent::class)) {
+                $this->entities->attach($this->selectedEntity, new GizmoComponent);
+            }
+
             $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
             // update the position to heightmap cursor position
-            $transform->position = $heightmapComponent->cursorWorldPosition->copy();
+            // when height placements are requested
+            if ($inputContext->actions->isButtonDown('place_height')) {
+                $transform->position = $heightmapComponent->cursorWorldPosition->copy();
+            }
 
+            // rotate 
             if ($inputContext->actions->isButtonDown('rotate_left')) {
                 $transform->orientation->rotate(0.01, new Vec3(0, 1, 0));
             } else if ($inputContext->actions->isButtonDown('rotate_right')) {
                 $transform->orientation->rotate(-0.01, new Vec3(0, 1, 0));
             }
 
+            // scale
             if ($inputContext->actions->isButtonDown('scale_up')) {
                 $transform->scale += 0.1;
             } else if ($inputContext->actions->isButtonDown('scale_down')) {
@@ -158,13 +192,16 @@ class LevelEditorScene extends LevelScene
                 $this->deselectEntity();
             }
 
-
+            // place down aka realease
             if ($inputContext->actions->didButtonRelease('place')) {
                 $this->deselectEntity();
             }
         } else {
             $this->deselectEntity();
         }
+
+        // update systems
+        $this->gizmoEditorSystem->update($this->entities);
     }
 
     /**
@@ -217,7 +254,12 @@ class LevelEditorScene extends LevelScene
         // hightlight the selected entity
         // by rendering an AABB around it
         if ($this->entities->valid($this->selectedEntity)) {
-            DebugTextOverlay::debugString("Entity {$this->selectedEntity} selected, press '.' & ',' to rotate, scale with 'k' & 'l', copy with 'c', delete with 'backspace'");
+            DebugTextOverlay::debugString("Entity {$this->selectedEntity} selected");
+            DebugTextOverlay::debugString(" - Rotate: press '.' & ','");
+            DebugTextOverlay::debugString(" - Follow Terrain: hold 'f'");
+            DebugTextOverlay::debugString(" - Scale: press 'k' & 'l'");
+            DebugTextOverlay::debugString(" - Copy: press 'c'");
+            DebugTextOverlay::debugString(" - Delete: press 'backspace'");
 
             if (
                 $this->entities->has($this->selectedEntity, DynamicRenderableModel::class) &&
@@ -235,6 +277,9 @@ class LevelEditorScene extends LevelScene
 
     private function deselectEntity()
     {
+        // remove gizmo components from the selected one
+        $this->entities->detach($this->selectedEntity, GizmoComponent::class);
+
         $this->selectedEntity = 0;
         $this->devPicker->enabled = true;
         $this->container->resolveInputContext()->switchToNext('level_editor');
@@ -242,6 +287,9 @@ class LevelEditorScene extends LevelScene
 
     private function selectEntity(int $entityId)
     {
+        // remove any gizmo components on the last entity
+        $this->entities->detach($this->selectedEntity, GizmoComponent::class);
+
         $this->selectedEntity = $entityId;
         $this->devPicker->enabled = false;
         $this->container->resolveInputContext()->switchToNext('level_editor.selected');
