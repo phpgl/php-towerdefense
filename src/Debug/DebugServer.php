@@ -121,6 +121,7 @@ class DebugServer
                 $responseJSON = json_encode($response);
                 socket_write($socketItem, $responseJSON, strlen($responseJSON));
 
+                // check for disconnect
                 if (isset($response['request']) && $response['request'] == "disconnect") {
                     socket_close($socketItem);
                     unset($this->clients[$i]);
@@ -143,35 +144,43 @@ class DebugServer
      */
     private function handleInput(string $input, EntitiesInterface $entities): array
     {
+        // parse the input
         $inputMessageJSON = json_decode($input, true);
         if ($inputMessageJSON == null) {
+            // invalid JSON
             return [
                 'error' => "Invalid JSON on input"
             ];
         }
 
+        // check for the command
         if (!isset($inputMessageJSON['command'])) {
             return [
                 'error' => "Missing command"
             ];
         }
 
+        // check for the request id
         if (!isset($inputMessageJSON['request_id'])) {
             return [
                 'error' => "Missing request id for response"
             ];
         }
 
+        // prepare the response
         $response = [
             'response_id' => $inputMessageJSON['request_id'],
             'request' => $inputMessageJSON['command']
         ];
 
+        // handle the command
         switch ($inputMessageJSON['command']) {
             case 'disconnect':
+                // close the socket
                 $response['response'] = "Bye!";
                 break;
             case 'available_commands':
+                // return the available commands
                 $response['response'] = [
                     "disconnect",
                     "available_commands",
@@ -179,6 +188,7 @@ class DebugServer
                 ];
                 break;
             case 'list_transform_components':
+                // return the list of transform components, their connected entity ids and their positions
                 $transformComponents = [];
                 foreach ($entities->view(Transform::class) as $entity => $transform) {
                     $transformComponents[] = [
@@ -193,6 +203,7 @@ class DebugServer
                 $response['response'] = $transformComponents;
                 break;
             default:
+                // unknown command
                 $response['response'] = "Unknown command";
                 break;
         }
