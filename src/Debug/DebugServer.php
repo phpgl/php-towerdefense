@@ -204,7 +204,7 @@ class DebugServer
                 break;
             default:
                 // unknown command
-                $response['response'] = "Unknown command";
+                $response['error'] = "Unknown command";
                 break;
         }
 
