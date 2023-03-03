@@ -14,7 +14,7 @@ abstract class BaseScene
      * The ECS registry, this is where your game state should be stored.
      */
     protected EntitiesInterface $entities;
-
+    
     /**
      * Array of systems
      * 
