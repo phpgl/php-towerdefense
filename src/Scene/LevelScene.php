@@ -4,7 +4,7 @@ namespace TowerDefense\Scene;
 
 use GameContainer;
 use TowerDefense\Debug\DebugTextOverlay;
-use TowerDefense\Renderer\BillboardRenderer;
+use TowerDefense\Renderer\BarBillboardRenderer;
 use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\CameraSystem;
@@ -40,7 +40,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Billboard renderer
      */
-    protected BillboardRenderer $billboardRenderer;
+    protected BarBillboardRenderer $barBillboardRenderer;
 
     /**
      * Systems
@@ -93,11 +93,10 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // prepare the rendering systems 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL(), $container->resolveShaders());
         $this->roadRenderer = new RoadRenderer($container->resolveGL(), $container->resolveShaders());
-        $this->billboardRenderer = new BillboardRenderer($container->resolveGL(), $container->resolveShaders());
+        $this->barBillboardRenderer = new BarBillboardRenderer($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
         $this->renderingSystem->addGeometryRenderer($this->roadRenderer);
-        $this->renderingSystem->addGeometryRenderer($this->billboardRenderer);
 
         // basic camera system
         $this->cameraSystem = new CameraSystem(
@@ -251,6 +250,9 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $backbuffer = $context->data->get(BackbufferData::class);
         $this->renderingSystem->setRenderTarget($backbuffer->target);
         $this->renderingSystem->render($this->entities, $context);
+
+        // render bar billboards (they are some kind of ui element)
+        $this->barBillboardRenderer->render($this->entities, $context);
     }
 
     /**

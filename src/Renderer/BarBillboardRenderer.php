@@ -7,10 +7,9 @@ use GL\Math\Vec3;
 use VISU\ECS\EntitiesInterface;
 use VISU\Graphics\GLState;
 use VISU\Graphics\QuadVertexArray;
+use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\CallbackPass;
-use VISU\Graphics\Rendering\Pass\GBufferGeometryPassInterface;
 use VISU\Graphics\Rendering\RenderContext;
-use VISU\Graphics\Rendering\Pass\GBufferPassData;
 use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderPass;
@@ -26,7 +25,7 @@ use VISU\Graphics\ShaderStage;
  * 
  * @package TowerDefense\Renderer
  */
-class BillboardRenderer implements GBufferGeometryPassInterface
+class BarBillboardRenderer
 {
     private QuadVertexArray $quadVAOuter;
 
@@ -67,19 +66,19 @@ class BillboardRenderer implements GBufferGeometryPassInterface
         $this->shaderProgram->link();
     }
 
-    public function renderToGBuffer(EntitiesInterface $entities, RenderContext $context, GBufferPassData $gbufferData): void
+    public function render(EntitiesInterface $entities, RenderContext $context): void
     {
         $context->pipeline->addPass(new CallbackPass(
             // setup
             function (RenderPass $pass, RenderPipeline $pipeline, PipelineContainer $data) {
-                $gbuffer = $data->get(GBufferPassData::class);
-                $pipeline->writes($pass, $gbuffer->renderTarget);
+                $backbuffer = $data->get(BackbufferData::class)->target;
+                $pipeline->writes($pass, $backbuffer);
             },
             // execute
             function (PipelineContainer $data, PipelineResources $resources) {
-                $gbuffer = $data->get(GBufferPassData::class);
-                $renderTarget = $resources->getRenderTarget($gbuffer->renderTarget);
-                $resources->activateRenderTarget($gbuffer->renderTarget);
+                $backbuffer = $data->get(BackbufferData::class)->target;
+                $renderTarget = $resources->getRenderTarget($backbuffer);
+                $renderTarget->preparePass();
                 $this->shaderProgram->use();
 
                 $proj = new Mat4;
@@ -87,7 +86,7 @@ class BillboardRenderer implements GBufferGeometryPassInterface
                 $this->shaderProgram->setUniformMat4('projection', false, $proj);
 
                 $model = new Mat4;
-                $model->translate(new Vec3(500, 500, 0));
+                $model->translate(new Vec3($renderTarget->width() / 2 - 50, $renderTarget->height() / 2 - 5, 0));
                 $model->scale(new Vec3(100, 10, 1));
                 $this->shaderProgram->setUniformMat4('model', false, $model);
 
