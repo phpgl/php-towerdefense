@@ -118,6 +118,7 @@ class LevelLoader
             'version' => static::SERIALIZATION_VERSION,
             'entities' => $entities->serialize([
                 Transform::class,
+                DynamicRenderableModel::class,
             ], LevelSceneryComponent::class),
         ];
 

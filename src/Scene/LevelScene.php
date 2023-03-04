@@ -10,6 +10,7 @@ use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\CameraSystem;
 use TowerDefense\System\HeightmapSystem;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
+use VISU\ECS\EntityRegisty;
 use VISU\ECS\Picker\DevEntityPicker;
 use VISU\ECS\Picker\DevEntityPickerDelegate;
 use VISU\Geo\Transform;
@@ -21,9 +22,9 @@ use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\RenderTarget;
 use VISU\OS\Input;
 use VISU\OS\Key;
+use VISU\Runtime\DebugConsole;
 use VISU\Signals\Input\KeySignal;
-use VISU\System\VISULowPoly\LPModel;
-use VISU\System\VISULowPoly\LPObjLoader;
+use VISU\Signals\Runtime\ConsoleCommandSignal;
 use VISU\System\VISULowPoly\LPRenderingSystem as VISULowPolyRenderingSystem;
 
 abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
@@ -51,18 +52,6 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private VISULowPolyRenderingSystem $renderingSystem;
     private CameraSystem $cameraSystem;
     private HeightmapSystem $heightmapSystem;
-
-    /**
-     * Object loader (3D models)
-     */
-    private LPObjLoader $objectLoader;
-
-    /**
-     * Loaded objects
-     * 
-     * @var array<string, LPModel>
-     */
-    protected array $loadedObjects = [];
 
     /**
      * Dev entity picker, for debug and level editor
@@ -94,13 +83,18 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->entities->registerComponent(LevelSceneryComponent::class);
 
         // load all space kit models
-        $this->objectLoader = new LPObjLoader($container->resolveGL());
-        $this->loadedObjects = $this->objectLoader->loadAllInDirectory(VISU_PATH_RESOURCES . '/models/spacekit');
+        $objectCollection = $container->resolveModels();
+        $objectLoader = $container->resolveModelsLoader();
+        $objectLoader->loadAllInDirectory(VISU_PATH_RESOURCES . '/models/spacekit', $objectCollection);
 
         // prepare the rendering systems 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL(), $container->resolveShaders());
         $this->roadRenderer = new RoadRenderer($container->resolveGL(), $container->resolveShaders());
-        $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
+        $this->renderingSystem = new VISULowPolyRenderingSystem(
+            $container->resolveGL(), 
+            $container->resolveShaders(),
+            $objectCollection
+        );
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
         $this->renderingSystem->addGeometryRenderer($this->roadRenderer);
         
@@ -129,6 +123,9 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         // construct the dev entity picker
         $this->constructDevEntityPicker();
+
+        // register console command
+        $this->registerConsoleCommands();
     }
 
     /**
@@ -146,7 +143,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Constrcuts the DEV entity picker
      */
-    public function constructDevEntityPicker() : void
+    private function constructDevEntityPicker() : void
     {
         // right now using the window framebuffer as render target
         // for entity picking, we need to test if is more efficient
@@ -173,6 +170,41 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     }
 
     /**
+     * Registers the console commmand handler, for level scene specific commands
+     */
+    private function registerConsoleCommands()
+    {
+        $this->container->resolveVisuDispatcher()->register(DebugConsole::EVENT_CONSOLE_COMMAND, function(ConsoleCommandSignal $signal) 
+        {
+            if ($signal->isAction('level.save')) 
+            {
+                $signal->console->writeLine('Saving level "' . $this->levelName . '"');
+                $this->saveLevel();
+            }
+            elseif ($signal->isAction('level.switch')) 
+            {
+                $levelName = $signal->commandParts[1] ?? null;
+
+                if (!$levelName) {
+                    $signal->console->writeLine('Missing level name! Usage: level.switch <level_name>');
+                    return;
+                }
+
+                $signal->console->writeLine('Switching to level "' . $levelName . '"');
+
+                if (!$this->levelLoader->exists($levelName)) {
+                    $signal->console->writeLine('Level "' . $levelName . '" does not exist, creating it now...');
+                    $this->entities = new EntityRegisty;
+                    $this->levelName = $levelName;
+                    $this->saveLevel();
+                }
+
+                $this->changeLevel($levelName);
+            }
+        });
+    }
+
+    /**
      * Loads resources required for the scene, prepere base entiteis 
      * basically prepare anything that is required to be ready before the scene is rendered.
      * 
@@ -186,10 +218,10 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // load basic road
         $this->roadRenderer->loadRoad(VISU_PATH_RESOURCES . '/models/road/basic.obj');
 
-        // register systems
-        $this->registerSystems();
+        // initalize the level
+        $this->initalizeLevel();
 
-        // prepare the scene 
+        // tmp..
         $this->prepareScene();
     }
 
@@ -202,7 +234,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $someObject = $this->entities->create();
         $this->entities->attach($someObject, new LevelSceneryComponent);
         $renderable = $this->entities->attach($someObject, new DynamicRenderableModel);
-        $renderable->model = $this->loadedObjects['turret_double.obj']; // <- render the turret
+        $renderable->modelName = 'turret_double.obj'; // <- render the turret
         $transform = $this->entities->attach($someObject, new Transform);
         $transform->scale = $transform->scale * 10;
         $transform->position->y = 55;
@@ -212,7 +244,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $dishObject = $this->entities->create();
         $this->entities->attach($dishObject, new LevelSceneryComponent);
         $renderable = $this->entities->attach($dishObject, new DynamicRenderableModel);
-        $renderable->model = $this->loadedObjects['satelliteDish_large.obj'];
+        $renderable->modelName = 'satelliteDish_large.obj';
         $transform = $this->entities->attach($dishObject, new Transform);
         $transform->scale = $transform->scale * 10;
         $transform->position->y = 0;
@@ -241,6 +273,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     public function saveLevel() : void
     {
         $options = $this->levelLoader->createOptions($this->levelName);
+
         $this->levelLoader->serialize($this->entities, $options);
     }
 
@@ -253,14 +286,8 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         $this->unregisterSystems();
         $this->levelLoader->deserialize($this->entities, $options);
-        $this->registerSystems();
 
-        // create a camera
-        $cameraEntity = $this->entities->create();
-        $camera = $this->entities->attach($cameraEntity, new Camera(CameraProjectionMode::perspective));
-        $camera->transform->position->y = 100;
-        $camera->transform->position->z = 50;
-        $this->cameraSystem->setActiveCameraEntity($cameraEntity);
+        $this->initalizeLevel();
     }
 
     /**
@@ -274,6 +301,24 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         // load the new level
         $this->loadLevel();
+    }
+
+    /**
+     * Initalizes all resources required for the level
+     * This is the place where you should create non serializable entities,
+     * level specific stuff etc.
+     */
+    public function initalizeLevel() : void
+    {
+        // register the systems
+        $this->registerSystems();
+
+        // create a camera
+        $cameraEntity = $this->entities->create();
+        $camera = $this->entities->attach($cameraEntity, new Camera(CameraProjectionMode::perspective));
+        $camera->transform->position->y = 100;
+        $camera->transform->position->z = 50;
+        $this->cameraSystem->setActiveCameraEntity($cameraEntity);
     }
 
     /**

@@ -250,9 +250,9 @@ class LevelEditorScene extends LevelScene
                 $renderable = $this->entities->get($this->selectedEntity, DynamicRenderableModel::class);
                 $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
-                foreach($renderable->model->meshes as $mesh) {
-                    D3D::aabb($transform->position, $mesh->aabb->min * $transform->scale, $mesh->aabb->max * $transform->scale, D3D::$colorGreen);
-                }
+                // foreach($renderable->model->meshes as $mesh) {
+                //     D3D::aabb($transform->position, $mesh->aabb->min * $transform->scale, $mesh->aabb->max * $transform->scale, D3D::$colorGreen);
+                // }
             }
         }
     }
