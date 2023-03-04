@@ -4,6 +4,7 @@ namespace TowerDefense\Scene;
 
 use GameContainer;
 use TowerDefense\Debug\DebugTextOverlay;
+use TowerDefense\Renderer\BillboardRenderer;
 use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\CameraSystem;
@@ -35,6 +36,11 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * Road renderer
      */
     protected RoadRenderer $roadRenderer;
+
+    /**
+     * Billboard renderer
+     */
+    protected BillboardRenderer $billboardRenderer;
 
     /**
      * Systems
@@ -73,8 +79,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function __construct(
         protected GameContainer $container,
-    )
-    {
+    ) {
         parent::__construct($container);
 
         // register key handler for debugging 
@@ -88,18 +93,19 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // prepare the rendering systems 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL(), $container->resolveShaders());
         $this->roadRenderer = new RoadRenderer($container->resolveGL(), $container->resolveShaders());
+        $this->billboardRenderer = new BillboardRenderer($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
         $this->renderingSystem->addGeometryRenderer($this->roadRenderer);
-        
+        $this->renderingSystem->addGeometryRenderer($this->billboardRenderer);
 
         // basic camera system
         $this->cameraSystem = new CameraSystem(
-            $this->container->resolveInput(), 
+            $this->container->resolveInput(),
             $this->container->resolveInputContext(),
             $this->container->resolveVisuDispatcher()
         );
-        
+
         // heightmap system (this is not the terrain)
         $this->heightmapSystem = new HeightmapSystem(
             $this->container->resolveGL(),
@@ -135,7 +141,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Constrcuts the DEV entity picker
      */
-    public function constructDevEntityPicker() : void
+    public function constructDevEntityPicker(): void
     {
         // right now using the window framebuffer as render target
         // for entity picking, we need to test if is more efficient
@@ -148,7 +154,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // more time on this...
         $this->devPicker = new DevEntityPicker(
             $this,
-            $this->entities, 
+            $this->entities,
             $this->container->resolveVisuDispatcher(),
             $this->devPickerRenderTarget,
             [
@@ -167,7 +173,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * 
      * @return void 
      */
-    public function load() : void
+    public function load(): void
     {
         // load the terrain
         $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RESOURCES . '/terrain/alien_planet/alien_planet_terrain.obj');
@@ -213,7 +219,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $transform->position->x = 10;
         $transform->position->z = 10;
 
-        $transform->setParent($this->entities, $someObject);   
+        $transform->setParent($this->entities, $someObject);
     }
 
     /**
@@ -222,7 +228,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * 
      * @return void 
      */
-    public function update() : void
+    public function update(): void
     {
         $this->cameraSystem->update($this->entities);
         $this->heightmapSystem->update($this->entities);
@@ -234,7 +240,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * 
      * @param RenderContext $context
      */
-    public function render(RenderContext $context) : void
+    public function render(RenderContext $context): void
     {
         DebugTextOverlay::debugString("Press 'SHIFT' + NUM for render debug: NONE=0, POS=1, VPOS=2, NORM=3, DEPTH=4, ALBEDO=5");
 
@@ -250,7 +256,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Keyboard event handler
      */
-    public function handleKeyboardEvent(KeySignal $signal) : void
+    public function handleKeyboardEvent(KeySignal $signal): void
     {
         if ($signal->mods !== Key::MOD_SHIFT && $signal->action == GLFW_PRESS) {
             return;
@@ -270,7 +276,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_ALBEDO;
         } elseif ($signal->key === KEY::NUM_6) {
             $this->renderingSystem->debugMode = VISULowPolyRenderingSystem::DEBUG_MODE_SSAO;
-        } 
+        }
     }
 
     /**
