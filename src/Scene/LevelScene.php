@@ -2,6 +2,7 @@
 
 namespace TowerDefense\Scene;
 
+use Exception;
 use GameContainer;
 use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Component\LevelSceneryComponent;
@@ -193,56 +194,74 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->container->resolveVisuDispatcher()->register(DebugConsole::EVENT_CONSOLE_COMMAND, function(ConsoleCommandSignal $signal) 
         {
             // print the help dialog if no command is given
-            if ($signal->isAction('level')) 
-            {
-                $signal->console->writeLine('Level commands: [level.save] [level.switch <level_name>] [level.terrain <terrain_name>]');
-            }
-            // save the current state in the level
-            if ($signal->isAction('level.save')) 
-            {
-                $signal->console->writeLine('Saving level "' . $this->levelName . '"');
-                $this->saveLevel();
-            }
-            // switch to another level
-            elseif ($signal->isAction('level.switch')) 
-            {
-                $levelName = $signal->commandParts[1] ?? null;
-
-                if (!$levelName) {
-                    $signal->console->writeLine('Missing level name! Usage: level.switch <level_name>');
-                    return;
-                }
-
-                $signal->console->writeLine('Switching to level "' . $levelName . '"');
-
-                // write a warning if the level does not exist
-                if (!$this->levelLoader->exists($levelName)) {
-                    $signal->console->writeLine('Level "' . $levelName . '" does not exist, creating it now...');
-                }
-
-                $this->changeLevel($levelName);
-            }
-            // loads a terrain into the level
-            elseif ($signal->isAction('level.terrain')) 
-            {
-                $terrainFile = '/terrain/alien_planet/alien_planet_terrain.obj';
-                $terrainFile = $signal->commandParts[1] ?? null;
-
-                if (!file_exists(VISU_PATH_RES_TERRAIN . $terrainFile) || !is_file(VISU_PATH_RES_TERRAIN . $terrainFile)) {
-                    $signal->console->writeLine('Terrain file "' . $terrainFile . '" does not exist!');
-                    return;
-                }
-
-                // load the actual terrain file and store it in the level data
-                $signal->console->writeLine('Loading terrain "' . $terrainFile . '"...');
-                $this->level->terrainFileName = $terrainFile;
-                $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName);
-
-                // ensure that we capture a new heightmap
-                $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
-                $heightmapComponent->requiresCapture = true;
+            if ($signal->isAction('level')) {
+                $signal->console->writeLine('Level commands: [level.save] [level.switch <level_name>] [level.terrain <terrain_path>]');
+            } elseif ($signal->isAction('level.save')) {
+                $this->handleConsoleCommandLevelSave($signal);
+            } elseif ($signal->isAction('level.switch')) {
+                $this->handleConsoleCommandLevelSwitch($signal);
+            } elseif ($signal->isAction('level.terrain')) {
+                $this->handleConsoleCommandLevelTerrain($signal);
             }
         });
+    }
+
+    /**
+     * "level.save" handler
+     */
+    private function handleConsoleCommandLevelSave(ConsoleCommandSignal $signal) : void
+    {
+        $signal->console->writeLine('Saving level "' . $this->levelName . '"');
+        $this->saveLevel();
+    }
+
+    /**
+     * "level.switch" handler
+     */
+    private function handleConsoleCommandLevelSwitch(ConsoleCommandSignal $signal) : void
+    {
+        $levelName = $signal->commandParts[1] ?? null;
+
+        if (!$levelName) {
+            $signal->console->writeLine('Missing level name! Usage: level.switch <level_name>');
+            return;
+        }
+
+        $signal->console->writeLine('Switching to level "' . $levelName . '"');
+
+        // write a warning if the level does not exist
+        if (!$this->levelLoader->exists($levelName)) {
+            $signal->console->writeLine('Level "' . $levelName . '" does not exist, creating it now...');
+        }
+
+        $this->changeLevel($levelName);
+    }
+
+    /**
+     * "level.terrain" handler
+     */
+    private function handleConsoleCommandLevelTerrain(ConsoleCommandSignal $signal) : void
+    {
+        $terrainFile = $signal->commandParts[1] ?? null;
+
+        if (!$terrainFile) {
+            $signal->console->writeLine('Missing terrain file! Usage: level.terrain <terrain_path>');
+            return;
+        }
+
+        if (!file_exists(VISU_PATH_RES_TERRAIN . $terrainFile) || !is_file(VISU_PATH_RES_TERRAIN . $terrainFile)) {
+            $signal->console->writeLine('Terrain file "' . $terrainFile . '" does not exist!');
+            return;
+        }
+
+        // load the actual terrain file and store it in the level data
+        $signal->console->writeLine('Loading terrain "' . $terrainFile . '"...');
+        $this->level->terrainFileName = $terrainFile;
+        $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName);
+
+        // ensure that we capture a new heightmap
+        $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+        $heightmapComponent->requiresCapture = true;
     }
 
     /**
@@ -269,9 +288,9 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Create the level load options specifically for this scenes implementation
      */
-    private function createLevelLoadOptions() : LevelLoaderOptions
+    private function createLevelLoadOptions(?string $levelName = null) : LevelLoaderOptions
     {
-        $options = $this->levelLoader->createOptions($this->levelName);
+        $options = $this->levelLoader->createOptions($levelName ?? $this->levelName);
 
         // we want to filter out all entities that are not part of the level scenery
         $options->serialisationFilterComponent = LevelSceneryComponent::class;
@@ -320,7 +339,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         {
             $data = new LevelData;
             $data->name = ucfirst($levelName);
-            $this->levelLoader->serialize(new EntityRegisty, $data, $this->createLevelLoadOptions());
+            $this->levelLoader->serialize(new EntityRegisty, $data, $this->createLevelLoadOptions($levelName));
         }
 
         // change the name to the requested level and load it
@@ -337,7 +356,8 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         // load the terrain from the level data
         if ($this->level->terrainFileName === null || !file_exists(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName)) {
-            Logger::warn('Level "' . $this->level->name . '" does not have a terrain file, using empty terrain.');
+            Logger::warn('Level "' . $this->level->name . '" does not have a terrain file, using flat terrain.');
+            $this->terrainRenderer->createFlatTerrain(128, 128, 16); // 2048x2048
         } else {
             if (!FileSystem::isPathInDirectory(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName, VISU_PATH_RES_TERRAIN)) {
                 throw new \RuntimeException('Terrain file path is not allowed!');
