@@ -89,10 +89,10 @@ class BarBillboardRenderer
                 $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
                 $barWidth = 120.0;
                 $barHeight = 20.0;
-                $barProgress = 50.0; // 50%
+                $barProgress = 0.5; // 50%
                 $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
                 $innerBarBorderWidth = 4.0;
-                $innerBarWidth = ($barWidth - ($innerBarBorderWidth * 2.0)) * ($barProgress / 100.0);
+                $innerBarWidth = ($barWidth - ($innerBarBorderWidth * 2.0)) * $barProgress;
                 $innerBarHeight = $barHeight - ($innerBarBorderWidth * 2.0);
 
                 // set the projection matrix
