@@ -105,7 +105,7 @@ class LevelLoader
         if (!isset($levelData['entities']) || !isset($levelData['level'])) {
             throw new \Exception('Level file is corrupt, missing entities or level data.');
         }
-        
+
         $entities->deserialize($levelData['entities']);
 
         // deserialize level data
@@ -130,9 +130,10 @@ class LevelLoader
             'version' => static::SERIALIZATION_VERSION,
             'level' => serialize($level),
             'entities' => $entities->serialize([
+                $options->serialisationFilterComponent,
                 Transform::class,
                 DynamicRenderableModel::class,
-            ], LevelSceneryComponent::class),
+            ], $options->serialisationFilterComponent),
         ];
 
         $buffer = json_encode($levelData);
