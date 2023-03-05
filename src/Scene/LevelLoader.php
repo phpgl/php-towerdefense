@@ -81,7 +81,7 @@ class LevelLoader
     /**
      * Deserializes the given level file into the given registry.
      */
-    public function deserialize(EntitiesInterface $entities, LevelLoaderOptions $options) : void
+    public function deserialize(EntitiesInterface $entities, LevelLoaderOptions $options) : LevelData
     {
         if (!file_exists($options->levelFilePath) || !is_readable($options->levelFilePath)) {
             throw new \Exception('Level file could not be found or is not readable: ' . $options->levelFilePath);
@@ -102,13 +102,25 @@ class LevelLoader
             throw new \Exception('Only EntityRegistry instances are supported for serialization.');
         }
 
+        if (!isset($levelData['entities']) || !isset($levelData['level'])) {
+            throw new \Exception('Level file is corrupt, missing entities or level data.');
+        }
+        
         $entities->deserialize($levelData['entities']);
+
+        // deserialize level data
+        $level = unserialize($levelData['level']);
+        if (!$level instanceof LevelData) {
+            throw new \Exception('Could not deserialize level data.');
+        }
+
+        return $level;
     }
 
     /**
      * Serializes the given registry into the given level file.
      */
-    public function serialize(EntitiesInterface $entities, LevelLoaderOptions $options) : void
+    public function serialize(EntitiesInterface $entities, LevelData $level, LevelLoaderOptions $options) : void
     {
         if (!$entities instanceof EntityRegisty) {
             throw new \Exception('Only EntityRegistry instances are supported for serialization.');
@@ -116,6 +128,7 @@ class LevelLoader
 
         $levelData = [
             'version' => static::SERIALIZATION_VERSION,
+            'level' => serialize($level),
             'entities' => $entities->serialize([
                 Transform::class,
                 DynamicRenderableModel::class,

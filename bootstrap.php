@@ -26,6 +26,7 @@ define('VISU_PATH_CACHE',        VISU_PATH_ROOT . DS . 'var' . DS . 'cache');
 define('VISU_PATH_STORE',        VISU_PATH_ROOT . DS . 'var' . DS . 'storage');
 define('VISU_PATH_RESOURCES',    VISU_PATH_ROOT . DS . 'resources');
 define('VISU_PATH_LEVELS',       VISU_PATH_RESOURCES . DS . 'levels');
+define('VISU_PATH_RES_TERRAIN',  VISU_PATH_RESOURCES . DS . 'terrain');
 define('VISU_PATH_APPCONFIG',    VISU_PATH_ROOT . DS . 'app');
 
 /**

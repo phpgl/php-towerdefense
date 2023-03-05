@@ -3,6 +3,7 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Component\LevelSceneryComponent;
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\RoadRenderer;
@@ -20,8 +21,10 @@ use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\CameraData;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\RenderTarget;
+use VISU\OS\FileSystem;
 use VISU\OS\Input;
 use VISU\OS\Key;
+use VISU\OS\Logger;
 use VISU\Runtime\DebugConsole;
 use VISU\Signals\Input\KeySignal;
 use VISU\Signals\Runtime\ConsoleCommandSignal;
@@ -43,6 +46,19 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      * A level loader, serializes and deserializes levels
      */
     protected LevelLoader $levelLoader;
+
+    /**
+     * Current level data, this is serialized container for all* level data.
+     * The entites are serialized separately!
+     */
+    protected LevelData $level;
+
+    /**
+     * Level initialition flag
+     * To avoid unregistering the systems before they are registered and handling 
+     * duplicate events etc.
+     */
+    protected bool $levelInitialized = false;
 
     /**
      * Systems
@@ -134,7 +150,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     public function __destruct()
     {
         // unregister systems
-        $this->unregisterSystems();
+        if ($this->levelInitialized) $this->unregisterSystems();
 
         // unbind event handlers
         $this->container->resolveVisuDispatcher()->unregister('input.key', $this->keyboardHandlerId);
@@ -176,11 +192,18 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         $this->container->resolveVisuDispatcher()->register(DebugConsole::EVENT_CONSOLE_COMMAND, function(ConsoleCommandSignal $signal) 
         {
+            // print the help dialog if no command is given
+            if ($signal->isAction('level')) 
+            {
+                $signal->console->writeLine('Level commands: [level.save] [level.switch <level_name>] [level.terrain <terrain_name>]');
+            }
+            // save the current state in the level
             if ($signal->isAction('level.save')) 
             {
                 $signal->console->writeLine('Saving level "' . $this->levelName . '"');
                 $this->saveLevel();
             }
+            // switch to another level
             elseif ($signal->isAction('level.switch')) 
             {
                 $levelName = $signal->commandParts[1] ?? null;
@@ -192,14 +215,32 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
                 $signal->console->writeLine('Switching to level "' . $levelName . '"');
 
+                // write a warning if the level does not exist
                 if (!$this->levelLoader->exists($levelName)) {
                     $signal->console->writeLine('Level "' . $levelName . '" does not exist, creating it now...');
-                    $this->entities = new EntityRegisty;
-                    $this->levelName = $levelName;
-                    $this->saveLevel();
                 }
 
                 $this->changeLevel($levelName);
+            }
+            // loads a terrain into the level
+            elseif ($signal->isAction('level.terrain')) 
+            {
+                $terrainFile = '/terrain/alien_planet/alien_planet_terrain.obj';
+                $terrainFile = $signal->commandParts[1] ?? null;
+
+                if (!file_exists(VISU_PATH_RES_TERRAIN . $terrainFile) || !is_file(VISU_PATH_RES_TERRAIN . $terrainFile)) {
+                    $signal->console->writeLine('Terrain file "' . $terrainFile . '" does not exist!');
+                    return;
+                }
+
+                // load the actual terrain file and store it in the level data
+                $signal->console->writeLine('Loading terrain "' . $terrainFile . '"...');
+                $this->level->terrainFileName = $terrainFile;
+                $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName);
+
+                // ensure that we capture a new heightmap
+                $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+                $heightmapComponent->requiresCapture = true;
             }
         });
     }
@@ -212,59 +253,30 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function load() : void
     {
-        // load the terrain
-        $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RESOURCES . '/terrain/alien_planet/alien_planet_terrain.obj');
-
-        // load basic road
-        $this->roadRenderer->loadRoad(VISU_PATH_RESOURCES . '/models/road/basic.obj');
-
-        // initalize the level
-        $this->initalizeLevel();
-
-        // tmp..
-        $this->prepareScene();
+        // if the inital level exists load it from disk and user the 
+        // load level initializtion
+        if ($this->levelLoader->exists($this->levelName)) {
+            $this->loadLevel($this->levelName);
+        }
+        // if the level does not exist we have to initalize our level manually
+        else {
+            $this->level = new LevelData;
+            $this->level->name = $this->levelName;
+            $this->initalizeLevel();
+        }
     }
 
     /**
-     * Create required entites for the scene
+     * Create the level load options specifically for this scenes implementation
      */
-    private function prepareScene()
+    private function createLevelLoadOptions() : LevelLoaderOptions
     {
-        // create some random renderable objects
-        $someObject = $this->entities->create();
-        $this->entities->attach($someObject, new LevelSceneryComponent);
-        $renderable = $this->entities->attach($someObject, new DynamicRenderableModel);
-        $renderable->modelName = 'turret_double.obj'; // <- render the turret
-        $transform = $this->entities->attach($someObject, new Transform);
-        $transform->scale = $transform->scale * 10;
-        $transform->position->y = 55;
-        $transform->position->z = -50;
+        $options = $this->levelLoader->createOptions($this->levelName);
 
-        // create a sattelie dish "satelliteDish_large.obj"
-        $dishObject = $this->entities->create();
-        $this->entities->attach($dishObject, new LevelSceneryComponent);
-        $renderable = $this->entities->attach($dishObject, new DynamicRenderableModel);
-        $renderable->modelName = 'satelliteDish_large.obj';
-        $transform = $this->entities->attach($dishObject, new Transform);
-        $transform->scale = $transform->scale * 10;
-        $transform->position->y = 0;
-        $transform->position->x = 10;
-        $transform->position->z = 10;
+        // we want to filter out all entities that are not part of the level scenery
+        $options->serialisationFilterComponent = LevelSceneryComponent::class;
 
-        $transform->setParent($this->entities, $someObject);
-
-        $e1 = $this->entities->create();
-        $this->entities->attach($e1, new LevelSceneryComponent);
-
-        $e2 = $this->entities->create();
-        $this->entities->attach($e2, new Transform);
-
-        $e3 = $this->entities->create();
-        $this->entities->attach($e3, new Transform);
-        $this->entities->attach($e3, new LevelSceneryComponent);
-
-        $this->saveLevel();
-        $this->loadLevel();
+        return $options;
     }
 
     /**
@@ -272,9 +284,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function saveLevel() : void
     {
-        $options = $this->levelLoader->createOptions($this->levelName);
-
-        $this->levelLoader->serialize($this->entities, $options);
+        $this->levelLoader->serialize($this->entities, $this->level, $this->createLevelLoadOptions());
     }
 
     /**
@@ -282,24 +292,39 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function loadLevel() : void
     {
-        $options = $this->levelLoader->createOptions($this->levelName);
+        // unregister all systems before loading the level 
+        // its important that all system properly implement the register/unregister callback
+        // so that resources are properly freed / allocated when switching levels or scenes.
+        // Its important the unregisterSystems can be called in any situation, even multiple times
+        // in a row, so the implementation of unregisterSystems must be idempotent.
+        if ($this->levelInitialized) $this->unregisterSystems();
 
-        $this->unregisterSystems();
-        $this->levelLoader->deserialize($this->entities, $options);
+        // then we use the level load to deserialize the level into the entity registry and 
+        // the required level data
+        $this->level = $this->levelLoader->deserialize($this->entities, $this->createLevelLoadOptions());
 
+        // then we continue with the normal level initalization
+        // which will alos register the systems again.
         $this->initalizeLevel();
     }
 
     /**
-     * Changes the level to the level with the given name
-     * If the level does not exists it will be created.
+     * Changes the level to the level with the given name.
+     * If the level does not exists it will be created first.
      */
     public function changeLevel(string $levelName) : void
     {
-        // change the level
-        $this->levelName = $levelName;
+        // check if the level can be loaded 
+        // if that is not the case we simply serialize an empty level with that name 
+        if (!$this->levelLoader->exists($levelName)) 
+        {
+            $data = new LevelData;
+            $data->name = ucfirst($levelName);
+            $this->levelLoader->serialize(new EntityRegisty, $data, $this->createLevelLoadOptions());
+        }
 
-        // load the new level
+        // change the name to the requested level and load it
+        $this->levelName = $levelName;
         $this->loadLevel();
     }
 
@@ -310,6 +335,20 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function initalizeLevel() : void
     {
+        // load the terrain from the level data
+        if ($this->level->terrainFileName === null || !file_exists(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName)) {
+            Logger::warn('Level "' . $this->level->name . '" does not have a terrain file, using empty terrain.');
+        } else {
+            if (!FileSystem::isPathInDirectory(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName, VISU_PATH_RES_TERRAIN)) {
+                throw new \RuntimeException('Terrain file path is not allowed!');
+            }
+
+            $this->terrainRenderer->loadTerrainFromObj(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName);
+        }
+
+        // load basic road
+        $this->roadRenderer->loadRoad(VISU_PATH_RESOURCES . '/models/road/basic.obj');
+        
         // register the systems
         $this->registerSystems();
 
@@ -319,6 +358,9 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $camera->transform->position->y = 100;
         $camera->transform->position->z = 50;
         $this->cameraSystem->setActiveCameraEntity($cameraEntity);
+
+        // mark the level as initialized
+        $this->levelInitialized = true;
     }
 
     /**

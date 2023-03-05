@@ -16,6 +16,7 @@ use VISU\Graphics\Rendering\Renderer\Debug3DRenderer;
 use VISU\Graphics\Rendering\RenderPipeline;
 use VISU\Graphics\ShaderProgram;
 use VISU\OS\InputContextMap;
+use VISU\OS\Logger;
 use VISU\OS\Window;
 use VISU\Runtime\DebugConsole;
 use VISU\Runtime\GameLoopDelegate;
@@ -97,7 +98,7 @@ class Game implements GameLoopDelegate
 
         // preload all shaders
         $container->resolveShaders()->loadAll(function($name, ShaderProgram $shader) {
-            echo "[SHADER LOADED] {$name} -> {$shader->id}\n";
+            Logger::info("(shader) loaded: {$name} -> {$shader->id}");
         });
 
         // initialize the debug renderers

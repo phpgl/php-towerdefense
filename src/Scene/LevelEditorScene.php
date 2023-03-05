@@ -12,6 +12,7 @@ use VISU\D3D;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\OS\Key;
+use VISU\OS\Logger;
 use VISU\Runtime\DebugConsole;
 use VISU\Signals\Runtime\ConsoleCommandSignal;
 use VISU\System\Dev\GizmoEditorSystem;
@@ -33,7 +34,7 @@ class LevelEditorScene extends LevelScene
      */
     public function getName() : string
     {
-        return 'TowerDefense Level [EDITOR]';
+        return sprintf('TowerDefense (%s) [PLAY]', $this->level->name);
     }
 
     /**
@@ -290,7 +291,7 @@ class LevelEditorScene extends LevelScene
             return;
         }
         
-        echo "Entity selected: $entityId\n";
+        Logger::info("Entity selected: {$entityId}");
         $this->selectEntity($entityId);
     }
 }
