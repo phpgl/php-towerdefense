@@ -28,19 +28,12 @@ use VISU\Graphics\ShaderStage;
  */
 class BarBillboardRenderer
 {
-    private QuadVertexArray $quadVAOuter;
-
-    private QuadVertexArray $quadVAInner;
-
     private ShaderProgram $shaderProgram;
 
     public function __construct(
         private GLState $gl,
         private ShaderCollection $shaders
     ) {
-        $this->quadVAInner = new QuadVertexArray($gl);
-        $this->quadVAOuter = new QuadVertexArray($gl);
-
         // create the shader program
         $this->shaderProgram = new ShaderProgram($gl);
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::VERTEX, <<< 'GLSL'
@@ -79,6 +72,11 @@ class BarBillboardRenderer
             },
             // execute
             function (PipelineContainer $data, PipelineResources $resources) {
+                /** @var QuadVertexArray */
+                $quadVA = $resources->cacheStaticResource('quadva', function (GLState $gl) {
+                    return new QuadVertexArray($gl);
+                });
+
                 // activate the backbuffer as render target
                 $backbuffer = $data->get(BackbufferData::class)->target;
                 $renderTarget = $resources->getRenderTarget($backbuffer);
@@ -114,7 +112,7 @@ class BarBillboardRenderer
                 // draw the outer bar
                 glDisable(GL_DEPTH_TEST);
                 glDisable(GL_CULL_FACE);
-                $this->quadVAOuter->draw();
+                $quadVA->draw();
 
                 // set the model matrix of the inner bar
                 $model = new Mat4;
@@ -128,7 +126,7 @@ class BarBillboardRenderer
                 // draw the inner bar (progress)
                 glDisable(GL_DEPTH_TEST);
                 glDisable(GL_CULL_FACE);
-                $this->quadVAInner->draw();
+                $quadVA->draw();
             }
         ));
     }
