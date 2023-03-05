@@ -88,8 +88,20 @@ class BarBillboardRenderer
                 $this->shaderProgram->setUniformMat4('projection', false, $proj);
 
                 $model = new Mat4;
-                $model->translate(new Vec3($renderTarget->width() / 2 - 50, $renderTarget->height() / 2 - 5, 0));
-                $model->scale(new Vec3(100, 10, 1));
+                $model->translate(new Vec3(($renderTarget->width() / 2.0) - 60.0, ($renderTarget->height() / 2.0) - 10.0, 0));
+                $model->scale(new Vec3(120.0, 20.0, 1.0));
+                $this->shaderProgram->setUniformMat4('model', false, $model);
+
+                $this->shaderProgram->setUniformVec4('bar_color', new Vec4(0.0, 0.0, 0.0, 1.0));
+
+                glDisable(GL_DEPTH_TEST);
+                glDisable(GL_CULL_FACE);
+
+                $this->quadVAOuter->draw();
+
+                $model = new Mat4;
+                $model->translate(new Vec3(($renderTarget->width() / 2.0) - 116.0, ($renderTarget->height() / 2.0) - 10.0, 0));
+                $model->scale(new Vec3(56.0, 12.0, 1.0));
                 $this->shaderProgram->setUniformMat4('model', false, $model);
 
                 $this->shaderProgram->setUniformVec4('bar_color', new Vec4(0.5, 0.0, 0.0, 1.0));
