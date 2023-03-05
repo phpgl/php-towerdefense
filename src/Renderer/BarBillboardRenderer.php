@@ -118,14 +118,13 @@ class BarBillboardRenderer
                         $highestY = 0.0;
                         foreach ($model->model->meshes as $mesh) {
                             // get the maxaabb with the highest y value
-                            $aabbMax = $mesh->aabb->max;
-                            if ($aabbMax->y > $highestY) {
-                                $highestY = $aabbMax->y;
+                            if ($mesh->aabb->max->y > $highestY) {
+                                $highestY = $mesh->aabb->max->y;
                             }
                         }
 
                         $barCenter = $center->copy();
-                        $barCenter->y = $center->y + ($highestY * $transform->scale->y);
+                        $barCenter->y = $barCenter->y + ($highestY * $transform->scale->y);
                         $barCenter = $barCenter + $transform->getWorldPosition($entities);
 
                         // set the model matrix of the outer bar
@@ -137,10 +136,12 @@ class BarBillboardRenderer
                         // set the bar color of the outer bar
                         $this->shaderProgram->setUniformVec4('bar_color', $barColor);
 
+                        glDisable(GL_DEPTH_TEST);
+                        glDisable(GL_CULL_FACE);
+
                         // draw the outer bar
                         $quadVA->draw();
 
-                        $barCenter = $barCenter->copy();
                         $barCenter->x = ($barCenter->x - ($barWidth - $innerBarWidth)) + $fullBorderWidth;
 
                         // set the model matrix of the inner bar
@@ -151,6 +152,9 @@ class BarBillboardRenderer
 
                         // set the bar color of the inner bar
                         $this->shaderProgram->setUniformVec4('bar_color', $progressColor);
+
+                        glDisable(GL_DEPTH_TEST);
+                        glDisable(GL_CULL_FACE);
 
                         // draw the inner bar (progress)
                         $quadVA->draw();
