@@ -28,6 +28,16 @@ class LevelEditorScene extends LevelScene
     private int $selectedEntity = 0;
 
     /**
+     * Enables / disables snapping
+     */
+    private bool $snappingEnabled = false;
+
+    /**
+     * The current snapping grid, 0.0 = no snapping
+     */
+    private float $snappingGrid = 0.0;
+
+    /**
      * Systems
      */
     private GizmoEditorSystem $gizmoEditorSystem;
@@ -169,6 +179,22 @@ class LevelEditorScene extends LevelScene
             $heightmapComponent->requiresCapture = true;
         }
 
+        // should we enable / disable snapping?
+        if ($inputContext->actions->didButtonPress('toggle_snapping')) {
+            $this->snappingEnabled = !$this->snappingEnabled;
+        }
+        
+        // adjust the snapping grid
+        if ($this->snappingEnabled) {
+            if ($inputContext->actions->isButtonDown('fine_change')) {
+                $this->snappingGrid = 0.1;
+            } else {
+                $this->snappingGrid = 1.0;
+            }
+        } else {
+            $this->snappingGrid = 0.0;
+        }
+
         // if an entity is selected and has a transform component
         // we update the position until the user clicks the mouse button again
         if ($this->entities->valid($this->selectedEntity) && $this->entities->has($this->selectedEntity, Transform::class)) 
@@ -177,6 +203,11 @@ class LevelEditorScene extends LevelScene
             if (!$this->entities->has($this->selectedEntity, GizmoComponent::class)) {
                 $this->entities->attach($this->selectedEntity, new GizmoComponent);
             }
+
+            // be sure to copy the snapping state 
+            // to the gizmo component
+            $gizmoComponent = $this->entities->get($this->selectedEntity, GizmoComponent::class);
+            $gizmoComponent->snapGrid = $this->snappingGrid;
 
             $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
@@ -218,13 +249,20 @@ class LevelEditorScene extends LevelScene
 
             $transform->markDirty();
 
+            // if snapping is enabled we snap the position to the grid
+            if ($this->snappingEnabled) {
+                $transform->position->x = round($transform->position->x / $this->snappingGrid) * $this->snappingGrid;
+                $transform->position->y = round($transform->position->y / $this->snappingGrid) * $this->snappingGrid;
+                $transform->position->z = round($transform->position->z / $this->snappingGrid) * $this->snappingGrid;
+            }
+
             // copy
             if ($inputContext->actions->didButtonRelease('copy')) {
                 $copy = $this->entities->create();
                 foreach($this->entities->components($this->selectedEntity) as $component) {
                     $this->entities->attach($copy, clone $component);
                 }
-                $this->selectedEntity = $copy;
+                $this->devEntityPickerDidSelectEntity($copy);
             }
 
             // delete 
@@ -255,6 +293,11 @@ class LevelEditorScene extends LevelScene
     public function render(RenderContext $context) : void
     {
         parent::render($context);
+
+        // display level editor help
+        DebugTextOverlay::debugString("Level Editor commands:");
+        DebugTextOverlay::debugString(" - Rebuild Heightmap: press 'm'");
+        DebugTextOverlay::debugString(" - Enable/Disable Grid Snapping: press 'b'" . ($this->snappingEnabled ? " (enabled)" : " (disabled)"));
 
         // draw systems
         $this->gizmoEditorSystem->render($this->entities, $context);

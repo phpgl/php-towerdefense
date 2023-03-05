@@ -49,6 +49,7 @@
     - importArrayMap({
         create_object: '@Key::C',
         rebuild_heightmap: '@Key::M',
+        toggle_snapping: '@Key::B',
     })
 
 @input.actions.level_editor.selected: VISU\OS\InputActionMap()
@@ -64,4 +65,5 @@
         delete: '@Key::BACKSPACE',
         copy: '@Key::C',
         rebuild_heightmap: '@Key::M',
+        toggle_snapping: '@Key::B',
     })
