@@ -4,6 +4,7 @@ namespace TowerDefense\Renderer;
 
 use GL\Math\Mat4;
 use GL\Math\Vec3;
+use GL\Math\Vec4;
 use VISU\ECS\EntitiesInterface;
 use VISU\Graphics\GLState;
 use VISU\Graphics\QuadVertexArray;
@@ -56,11 +57,12 @@ class BarBillboardRenderer
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
         #version 330 core
+        uniform vec4 bar_color;
         out vec4 fragment_color;
 
         void main()
         {
-            fragment_color = vec4(0.5f, 0.0f, 0.0f, 1.0f);
+            fragment_color = bar_color;
         }
         GLSL));
         $this->shaderProgram->link();
@@ -89,6 +91,8 @@ class BarBillboardRenderer
                 $model->translate(new Vec3($renderTarget->width() / 2 - 50, $renderTarget->height() / 2 - 5, 0));
                 $model->scale(new Vec3(100, 10, 1));
                 $this->shaderProgram->setUniformMat4('model', false, $model);
+
+                $this->shaderProgram->setUniformVec4('bar_color', new Vec4(0.5, 0.0, 0.0, 1.0));
 
                 glDisable(GL_DEPTH_TEST);
                 glDisable(GL_CULL_FACE);
