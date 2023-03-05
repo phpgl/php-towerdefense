@@ -88,7 +88,7 @@ class BarBillboardRenderer
                 $this->shaderProgram->setUniformMat4('projection', false, $proj);
 
                 $model = new Mat4;
-                $model->translate(new Vec3(($renderTarget->width() / 2.0) - 60.0, ($renderTarget->height() / 2.0) - 10.0, 0));
+                $model->translate(new Vec3($renderTarget->width() / 2.0, $renderTarget->height() / 2.0, 0));
                 $model->scale(new Vec3(120.0, 20.0, 1.0));
                 $this->shaderProgram->setUniformMat4('model', false, $model);
 
@@ -100,7 +100,7 @@ class BarBillboardRenderer
                 $this->quadVAOuter->draw();
 
                 $model = new Mat4;
-                $model->translate(new Vec3(($renderTarget->width() / 2.0) - 116.0, ($renderTarget->height() / 2.0) - 10.0, 0));
+                $model->translate(new Vec3(($renderTarget->width() / 2.0) - 56.0, $renderTarget->height() / 2.0, 0));
                 $model->scale(new Vec3(56.0, 12.0, 1.0));
                 $this->shaderProgram->setUniformMat4('model', false, $model);
 
