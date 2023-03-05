@@ -5,15 +5,18 @@ namespace TowerDefense\Scene;
 use GameContainer;
 use GL\Math\Vec3;
 use TowerDefense\Component\HeightmapComponent;
+use TowerDefense\Component\LevelSceneryComponent;
 use TowerDefense\Debug\DebugTextOverlay;
 use VISU\Component\Dev\GizmoComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\D3D;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\OS\Input;
 use VISU\OS\Key;
 use VISU\OS\Logger;
 use VISU\Runtime\DebugConsole;
+use VISU\Signals\Input\DropSignal;
 use VISU\Signals\Runtime\ConsoleCommandSignal;
 use VISU\System\Dev\GizmoEditorSystem;
 
@@ -91,6 +94,42 @@ class LevelEditorScene extends LevelScene
            
             $this->selectedEntity = $newObj;
         });
+
+        // listen for file drop events
+        $this->container->resolveVisuDispatcher()->register(Input::EVENT_DROP, function(DropSignal $signal) 
+        {
+            if (count($signal->paths) !== 1) {
+                Logger::error('Only one file can be dropped at a time');
+                return;
+            }
+
+            // get the basename of the file, as our model files are currently all in one directory
+            $objName = basename($signal->paths[0]);
+
+            // check if its registered model file
+            $modelCollection = $this->container->resolveModels();
+            if (!$modelCollection->has($objName)) {
+                Logger::error('Model not found in current collection: ' . $objName . ' (did you forget to add it to the collection before dropping it?)');
+                return;
+            }
+
+            $droppedObj = $this->entities->create();
+
+            // attach the model component
+            $renderable = $this->entities->attach($droppedObj, new DynamicRenderableModel);
+            $renderable->modelIdentifier = $objName;
+            
+            // attach a transform component and move it to the cursor position
+            $transform = $this->entities->attach($droppedObj, new Transform);
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $transform->position = $heightmapComponent->cursorWorldPosition->copy();
+
+            // make the object part of the scenery
+            $this->entities->attach($droppedObj, new LevelSceneryComponent);
+
+            // select the dropped object
+            $this->devEntityPickerDidSelectEntity($droppedObj);
+        });
     }
 
     /**
@@ -125,6 +164,11 @@ class LevelEditorScene extends LevelScene
         // always enable raycasting
         $heightmapComponent->enableRaycasting = true;
 
+        // should we rebuild the heightmap?
+        if ($inputContext->actions->didButtonPress('rebuild_heightmap')) {
+            $heightmapComponent->requiresCapture = true;
+        }
+
         // if an entity is selected and has a transform component
         // we update the position until the user clicks the mouse button again
         if ($this->entities->valid($this->selectedEntity) && $this->entities->has($this->selectedEntity, Transform::class)) 
@@ -144,16 +188,32 @@ class LevelEditorScene extends LevelScene
 
             // rotate 
             if ($inputContext->actions->isButtonDown('rotate_left')) {
-                $transform->orientation->rotate(0.01, new Vec3(0, 1, 0));
+                if ($inputContext->actions->isButtonDown('fine_change')) {
+                    $transform->orientation->rotate(0.01, new Vec3(0, 1, 0));
+                } else {
+                    $transform->orientation->rotate(0.1, new Vec3(0, 1, 0));
+                }
             } else if ($inputContext->actions->isButtonDown('rotate_right')) {
-                $transform->orientation->rotate(-0.01, new Vec3(0, 1, 0));
+                if ($inputContext->actions->isButtonDown('fine_change')) {
+                    $transform->orientation->rotate(-0.01, new Vec3(0, 1, 0));
+                } else {
+                    $transform->orientation->rotate(-0.1, new Vec3(0, 1, 0));
+                }
             }
 
             // scale
             if ($inputContext->actions->isButtonDown('scale_up')) {
-                $transform->scale += 0.1;
+                if ($inputContext->actions->isButtonDown('fine_change')) {
+                    $transform->scale += 0.01;
+                } else {
+                    $transform->scale += 0.1;
+                }
             } else if ($inputContext->actions->isButtonDown('scale_down')) {
-                $transform->scale -= 0.1;
+                if ($inputContext->actions->isButtonDown('fine_change')) {
+                    $transform->scale -= 0.01;
+                } else {
+                    $transform->scale -= 0.1;
+                }
             }
 
             $transform->markDirty();
@@ -233,6 +293,9 @@ class LevelEditorScene extends LevelScene
         $this->roadRenderer->tmpP0 = $p0;
         $this->roadRenderer->tmpDest = $dest;
 
+        // get the model collection 
+        $modelCollection = $this->container->resolveModels();
+
         // hightlight the selected entity
         // by rendering an AABB around it
         if ($this->entities->valid($this->selectedEntity)) 
@@ -251,9 +314,21 @@ class LevelEditorScene extends LevelScene
                 $renderable = $this->entities->get($this->selectedEntity, DynamicRenderableModel::class);
                 $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
-                // foreach($renderable->model->meshes as $mesh) {
-                //     D3D::aabb($transform->position, $mesh->aabb->min * $transform->scale, $mesh->aabb->max * $transform->scale, D3D::$colorGreen);
-                // }
+                $model = $modelCollection->get($renderable->modelIdentifier);
+
+                DebugTextOverlay::debugString(
+                    sprintf(
+                        'Entity Dimensions: ' .
+                        'width: %.2fm ' .
+                        'height: %.2fm ' .
+                        'depth: %.2fm',
+                        $model->aabb->width() * $transform->scale->x,
+                        $model->aabb->height() * $transform->scale->y,
+                        $model->aabb->depth() * $transform->scale->z
+                    )
+                );
+
+                D3D::aabb($transform->position, $model->aabb->min * $transform->scale, $model->aabb->max * $transform->scale, D3D::$colorGreen);
             }
         }
     }

@@ -47,7 +47,8 @@
 @input.actions.level_editor: VISU\OS\InputActionMap()
     - importArrayMap(:input.action.map.game_camera)
     - importArrayMap({
-        'create_object': '@Key::C',
+        create_object: '@Key::C',
+        rebuild_heightmap: '@Key::M',
     })
 
 @input.actions.level_editor.selected: VISU\OS\InputActionMap()
@@ -59,6 +60,8 @@
         rotate_right: '@Key::PERIOD',
         scale_up: '@Key::K',
         scale_down: '@Key::L',
+        fine_change: '@Key::LEFT_SHIFT',
         delete: '@Key::BACKSPACE',
         copy: '@Key::C',
+        rebuild_heightmap: '@Key::M',
     })

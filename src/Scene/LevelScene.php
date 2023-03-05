@@ -2,7 +2,6 @@
 
 namespace TowerDefense\Scene;
 
-use Exception;
 use GameContainer;
 use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Component\LevelSceneryComponent;
@@ -11,11 +10,9 @@ use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\CameraSystem;
 use TowerDefense\System\HeightmapSystem;
-use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntityRegisty;
 use VISU\ECS\Picker\DevEntityPicker;
 use VISU\ECS\Picker\DevEntityPickerDelegate;
-use VISU\Geo\Transform;
 use VISU\Graphics\Camera;
 use VISU\Graphics\CameraProjectionMode;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
@@ -97,7 +94,6 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         // construct the level loader
         $this->levelLoader = new LevelLoader(VISU_PATH_LEVELS);
-        $this->entities->registerComponent(LevelSceneryComponent::class);
 
         // load all space kit models
         $objectCollection = $container->resolveModels();
@@ -354,6 +350,9 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
      */
     public function initalizeLevel() : void
     {
+        // register scene components
+        $this->entities->registerComponent(LevelSceneryComponent::class);
+
         // load the terrain from the level data
         if ($this->level->terrainFileName === null || !file_exists(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName)) {
             Logger::warn('Level "' . $this->level->name . '" does not have a terrain file, using flat terrain.');
