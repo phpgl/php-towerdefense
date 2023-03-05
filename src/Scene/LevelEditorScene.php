@@ -3,6 +3,7 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use GL\Math\GLM;
 use GL\Math\Vec3;
 use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Component\LevelSceneryComponent;
@@ -183,7 +184,7 @@ class LevelEditorScene extends LevelScene
         if ($inputContext->actions->didButtonPress('toggle_snapping')) {
             $this->snappingEnabled = !$this->snappingEnabled;
         }
-        
+
         // adjust the snapping grid
         if ($this->snappingEnabled) {
             if ($inputContext->actions->isButtonDown('fine_change')) {
@@ -217,44 +218,65 @@ class LevelEditorScene extends LevelScene
                 $transform->position = $heightmapComponent->cursorWorldPosition->copy();
             }
 
-            // rotate 
-            if ($inputContext->actions->isButtonDown('rotate_left')) {
-                if ($inputContext->actions->isButtonDown('fine_change')) {
-                    $transform->orientation->rotate(0.01, new Vec3(0, 1, 0));
-                } else {
-                    $transform->orientation->rotate(0.1, new Vec3(0, 1, 0));
+            // rotation
+            // ---
+            // in snapping mode we rotate the object to the nearest 90 degree angle (15 degree steps for fine changes)
+            // per button press, while in non-snapping mode we rotate the object continuously
+            if ($this->snappingEnabled) 
+            {
+                $angle = GLM::radians($inputContext->actions->isButtonDown('fine_change') ? 15 : 90);
+
+                if ($inputContext->actions->didButtonPress('rotate_left')) {
+                    $transform->orientation->rotate($angle, new Vec3(0, 1, 0));
+                } else if ($inputContext->actions->didButtonPress('rotate_right')) {
+                    $transform->orientation->rotate(-$angle, new Vec3(0, 1, 0));
                 }
-            } else if ($inputContext->actions->isButtonDown('rotate_right')) {
-                if ($inputContext->actions->isButtonDown('fine_change')) {
-                    $transform->orientation->rotate(-0.01, new Vec3(0, 1, 0));
-                } else {
-                    $transform->orientation->rotate(-0.1, new Vec3(0, 1, 0));
+            }
+            else 
+            {
+                $rotation = $inputContext->actions->isButtonDown('fine_change') ? 0.01 : 0.1;
+
+                if ($inputContext->actions->isButtonDown('rotate_left')) {
+                    $transform->orientation->rotate($rotation, new Vec3(0, 1, 0));
+                } else if ($inputContext->actions->isButtonDown('rotate_right')) {
+                    $transform->orientation->rotate(-$rotation, new Vec3(0, 1, 0));
                 }
             }
 
             // scale
-            if ($inputContext->actions->isButtonDown('scale_up')) {
-                if ($inputContext->actions->isButtonDown('fine_change')) {
-                    $transform->scale += 0.01;
-                } else {
-                    $transform->scale += 0.1;
+            // ---
+            // in snapping mode we scale the object by 1.0 or 0.1 per button press
+            // while in non-snapping mode we scale the object continuously
+            if ($inputContext->actions->isButtonDown('scale_up') || $inputContext->actions->isButtonDown('scale_down')) {
+                if ($this->snappingEnabled) {
+                    if ($inputContext->actions->didButtonPress('scale_up')) {
+                        $transform->scale += $this->snappingGrid;
+                    } else if ($inputContext->actions->didButtonPress('scale_down')) {
+                        $transform->scale -= $this->snappingGrid;
+                    }
+
+                    $transform->scale->x = round($transform->scale->x / $this->snappingGrid) * $this->snappingGrid;
+                    $transform->scale->y = round($transform->scale->y / $this->snappingGrid) * $this->snappingGrid;
+                    $transform->scale->z = round($transform->scale->z / $this->snappingGrid) * $this->snappingGrid;
                 }
-            } else if ($inputContext->actions->isButtonDown('scale_down')) {
-                if ($inputContext->actions->isButtonDown('fine_change')) {
-                    $transform->scale -= 0.01;
-                } else {
-                    $transform->scale -= 0.1;
+                else {
+                    $scale = $inputContext->actions->isButtonDown('fine_change') ? 0.01 : 0.1;
+                    if ($inputContext->actions->isButtonDown('scale_up')) {
+                        $transform->scale += $scale;
+                    } else if ($inputContext->actions->isButtonDown('scale_down')) {
+                        $transform->scale -= $scale;
+                    }
                 }
             }
-
-            $transform->markDirty();
-
+            
             // if snapping is enabled we snap the position to the grid
             if ($this->snappingEnabled) {
                 $transform->position->x = round($transform->position->x / $this->snappingGrid) * $this->snappingGrid;
                 $transform->position->y = round($transform->position->y / $this->snappingGrid) * $this->snappingGrid;
                 $transform->position->z = round($transform->position->z / $this->snappingGrid) * $this->snappingGrid;
             }
+            
+            $transform->markDirty();
 
             // copy
             if ($inputContext->actions->didButtonRelease('copy')) {
