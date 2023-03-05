@@ -92,8 +92,16 @@ class BarBillboardRenderer
                 $barProgress = 0.5; // 50%
                 $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
                 $innerBarBorderWidth = 4.0;
-                $innerBarWidth = ($barWidth - ($innerBarBorderWidth * 2.0)) * $barProgress;
-                $innerBarHeight = $barHeight - ($innerBarBorderWidth * 2.0);
+                $fullBorderWidth = ($innerBarBorderWidth * 2.0);
+                $innerBarWidth = ($barWidth - $fullBorderWidth) * $barProgress;
+                $innerBarHeight = $barHeight - $fullBorderWidth;
+                $centerX = $renderTarget->width() / 2.0;
+                $centerY = $renderTarget->height() / 2.0;
+                $center = new Vec3($centerX, $centerY, 0);
+                $outerBarScale = new Vec3($barWidth, $barHeight, 1.0);
+                $innerCenter = $center->copy();
+                $innerCenter->x = $centerX - $innerBarWidth;
+                $innerBarScale = new Vec3($innerBarWidth, $innerBarHeight, 1.0);
 
                 // set the projection matrix
                 $proj = new Mat4;
@@ -102,8 +110,8 @@ class BarBillboardRenderer
 
                 // set the model matrix of the outer bar
                 $model = new Mat4;
-                $model->translate(new Vec3($renderTarget->width() / 2.0, $renderTarget->height() / 2.0, 0));
-                $model->scale(new Vec3($barWidth, $barHeight, 1.0));
+                $model->translate($center);
+                $model->scale($outerBarScale);
                 $this->shaderProgram->setUniformMat4('model', false, $model);
 
                 // set the bar color of the outer bar
@@ -116,8 +124,8 @@ class BarBillboardRenderer
 
                 // set the model matrix of the inner bar
                 $model = new Mat4;
-                $model->translate(new Vec3(($renderTarget->width() / 2.0) - $innerBarWidth, $renderTarget->height() / 2.0, 0));
-                $model->scale(new Vec3($innerBarWidth, $innerBarHeight, 1.0));
+                $model->translate($innerCenter);
+                $model->scale($innerBarScale);
                 $this->shaderProgram->setUniformMat4('model', false, $model);
 
                 // set the bar color of the inner bar
