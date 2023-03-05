@@ -2,7 +2,7 @@
 
 namespace TowerDefense\Renderer;
 
-use GL\Math\Mat4;
+use GL\Math\Vec2;
 use GL\Math\Vec3;
 use GL\Math\Vec4;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
@@ -45,11 +45,14 @@ class BarBillboardRenderer
 
         uniform mat4 projection;
         uniform mat4 view;
-        uniform mat4 model;
+        uniform vec3 position_worldspace;
+        uniform vec2 bar_size;
 
         void main()
         {
-            gl_Position = projection * view * model * vec4(a_position, 1.0f);
+            gl_Position = (projection * view) * vec4(position_worldspace, 1.0f);
+            gl_Position /= gl_Position.w;
+            gl_Position.xy += a_position.xy * bar_size;
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
@@ -91,17 +94,17 @@ class BarBillboardRenderer
 
                 // set the bar config static for now for testing, we will get this from the bar components later on
                 $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
-                $barWidth = 120.0 / 50.0;
-                $barHeight = 20.0 / 50.0;
+                $barWidth = 120.0;
+                $barHeight = 20.0;
+                $barSize = new Vec2(($barWidth / $renderTarget->width()) * $renderTarget->contentScaleX, ($barHeight / $renderTarget->height()) * $renderTarget->contentScaleY);
                 $barProgress = 0.5; // 50%
                 $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
-                $innerBarBorderWidth = 4.0 / 50.0;
+                $innerBarBorderWidth = 4.0;
                 $fullBorderWidth = ($innerBarBorderWidth * 2.0);
                 $innerBarWidth = ($barWidth - $fullBorderWidth) * $barProgress;
                 $innerBarHeight = $barHeight - $fullBorderWidth;
-                $center = new Vec3(0.0, 1.0, 0.0); // 1.0 for y spacing above the model / object
-                $outerBarScale = new Vec3($barWidth, $barHeight, 1.0);
-                $innerBarScale = new Vec3($innerBarWidth, $innerBarHeight, 1.0);
+                $innerBarSize = new Vec2(($innerBarWidth / $renderTarget->width()) * $renderTarget->contentScaleX, ($innerBarHeight / $renderTarget->height()) * $renderTarget->contentScaleY);
+                $center = new Vec3(0.0, 2.0, 0.0); // 2.0 for y spacing above the model / object
 
                 // get the camera data
                 $cameraData = $data->get(CameraData::class);
@@ -127,11 +130,8 @@ class BarBillboardRenderer
                         $barCenter->y = $barCenter->y + ($highestY * $transform->scale->y);
                         $barCenter = $barCenter + $transform->getWorldPosition($entities);
 
-                        // set the model matrix of the outer bar
-                        $model = new Mat4;
-                        $model->translate($barCenter);
-                        $model->scale($outerBarScale);
-                        $this->shaderProgram->setUniformMat4('model', false, $model);
+                        $this->shaderProgram->setUniformVec3('position_worldspace', $barCenter);
+                        $this->shaderProgram->setUniformVec2('bar_size', $barSize);
 
                         // set the bar color of the outer bar
                         $this->shaderProgram->setUniformVec4('bar_color', $barColor);
@@ -142,13 +142,8 @@ class BarBillboardRenderer
                         // draw the outer bar
                         $quadVA->draw();
 
-                        $barCenter->x = ($barCenter->x - ($barWidth - $innerBarWidth)) + $fullBorderWidth;
-
-                        // set the model matrix of the inner bar
-                        $model = new Mat4;
-                        $model->translate($barCenter);
-                        $model->scale($innerBarScale);
-                        $this->shaderProgram->setUniformMat4('model', false, $model);
+                        $this->shaderProgram->setUniformVec3('position_worldspace', $barCenter);
+                        $this->shaderProgram->setUniformVec2('bar_size', $innerBarSize);
 
                         // set the bar color of the inner bar
                         $this->shaderProgram->setUniformVec4('bar_color', $progressColor);
