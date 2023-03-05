@@ -219,6 +219,15 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $transform->position->z = 10;
 
         $transform->setParent($this->entities, $someObject);
+
+        // create a racer craft
+        $newObj = $this->entities->create();
+        $renderable = $this->entities->attach($newObj, new DynamicRenderableModel);
+        $renderable->model = $this->loadedObjects['craft_racer.obj']; // <- render the turret
+        $transform = $this->entities->attach($newObj, new Transform);
+        $transform->scale = $transform->scale * 5.0;
+        $transform->position->z = -50.0;
+        $transform->position->y = 10.0;
     }
 
     /**

@@ -5,11 +5,14 @@ namespace TowerDefense\Renderer;
 use GL\Math\Mat4;
 use GL\Math\Vec3;
 use GL\Math\Vec4;
+use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
+use VISU\Geo\Transform;
 use VISU\Graphics\GLState;
 use VISU\Graphics\QuadVertexArray;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\Pass\CallbackPass;
+use VISU\Graphics\Rendering\Pass\CameraData;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
@@ -41,11 +44,12 @@ class BarBillboardRenderer
         layout (location = 0) in vec3 a_position;
 
         uniform mat4 projection;
+        uniform mat4 view;
         uniform mat4 model;
 
         void main()
         {
-            gl_Position = projection * model * vec4(a_position, 1.0f);
+            gl_Position = projection * view * model * vec4(a_position, 1.0f);
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
@@ -71,7 +75,7 @@ class BarBillboardRenderer
                 $pipeline->writes($pass, $backbuffer);
             },
             // execute
-            function (PipelineContainer $data, PipelineResources $resources) {
+            function (PipelineContainer $data, PipelineResources $resources) use ($entities) {
                 /** @var QuadVertexArray */
                 $quadVA = $resources->cacheStaticResource('quadva', function (GLState $gl) {
                     return new QuadVertexArray($gl);
@@ -87,54 +91,71 @@ class BarBillboardRenderer
 
                 // set the bar config static for now for testing, we will get this from the bar components later on
                 $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
-                $barWidth = 120.0;
-                $barHeight = 20.0;
+                $barWidth = 120.0 / 50.0;
+                $barHeight = 20.0 / 50.0;
                 $barProgress = 0.5; // 50%
                 $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
-                $innerBarBorderWidth = 4.0;
+                $innerBarBorderWidth = 4.0 / 50.0;
                 $fullBorderWidth = ($innerBarBorderWidth * 2.0);
                 $innerBarWidth = ($barWidth - $fullBorderWidth) * $barProgress;
                 $innerBarHeight = $barHeight - $fullBorderWidth;
-                $centerX = $renderTarget->width() / 2.0;
-                $centerY = $renderTarget->height() / 2.0;
-                $center = new Vec3($centerX, $centerY, 0);
+                $center = new Vec3(0.0, 1.0, 0.0); // 1.0 for y spacing above the model / object
                 $outerBarScale = new Vec3($barWidth, $barHeight, 1.0);
-                $innerCenter = $center->copy();
-                $innerCenter->x = $centerX - $innerBarWidth;
                 $innerBarScale = new Vec3($innerBarWidth, $innerBarHeight, 1.0);
 
+                // get the camera data
+                $cameraData = $data->get(CameraData::class);
+
                 // set the projection matrix
-                $proj = new Mat4;
-                $proj->ortho(0, $renderTarget->width(), 0, $renderTarget->height(), -1, 1);
-                $this->shaderProgram->setUniformMat4('projection', false, $proj);
+                $this->shaderProgram->setUniformMat4('projection', false, $cameraData->projection);
+                $this->shaderProgram->setUniformMat4('view', false, $cameraData->view);
 
-                // set the model matrix of the outer bar
-                $model = new Mat4;
-                $model->translate($center);
-                $model->scale($outerBarScale);
-                $this->shaderProgram->setUniformMat4('model', false, $model);
+                // for now lets assume every craft_racer.obj model has a bar
+                foreach ($entities->view(DynamicRenderableModel::class) as $entity => $model) {
+                    if ($model->model->name === 'craft_racer.obj') {
+                        // get the transform of this entity
+                        $transform = $entities->get($entity, Transform::class);
+                        $highestY = 0.0;
+                        foreach ($model->model->meshes as $mesh) {
+                            // get the maxaabb with the highest y value
+                            $aabbMax = $mesh->aabb->max;
+                            if ($aabbMax->y > $highestY) {
+                                $highestY = $aabbMax->y;
+                            }
+                        }
 
-                // set the bar color of the outer bar
-                $this->shaderProgram->setUniformVec4('bar_color', $barColor);
+                        $barCenter = $center->copy();
+                        $barCenter->y = $center->y + ($highestY * $transform->scale->y);
+                        $barCenter = $barCenter + $transform->getWorldPosition($entities);
 
-                // draw the outer bar
-                glDisable(GL_DEPTH_TEST);
-                glDisable(GL_CULL_FACE);
-                $quadVA->draw();
+                        // set the model matrix of the outer bar
+                        $model = new Mat4;
+                        $model->translate($barCenter);
+                        $model->scale($outerBarScale);
+                        $this->shaderProgram->setUniformMat4('model', false, $model);
 
-                // set the model matrix of the inner bar
-                $model = new Mat4;
-                $model->translate($innerCenter);
-                $model->scale($innerBarScale);
-                $this->shaderProgram->setUniformMat4('model', false, $model);
+                        // set the bar color of the outer bar
+                        $this->shaderProgram->setUniformVec4('bar_color', $barColor);
 
-                // set the bar color of the inner bar
-                $this->shaderProgram->setUniformVec4('bar_color', $progressColor);
+                        // draw the outer bar
+                        $quadVA->draw();
 
-                // draw the inner bar (progress)
-                glDisable(GL_DEPTH_TEST);
-                glDisable(GL_CULL_FACE);
-                $quadVA->draw();
+                        $barCenter = $barCenter->copy();
+                        $barCenter->x = ($barCenter->x - ($barWidth - $innerBarWidth)) + $fullBorderWidth;
+
+                        // set the model matrix of the inner bar
+                        $model = new Mat4;
+                        $model->translate($barCenter);
+                        $model->scale($innerBarScale);
+                        $this->shaderProgram->setUniformMat4('model', false, $model);
+
+                        // set the bar color of the inner bar
+                        $this->shaderProgram->setUniformVec4('bar_color', $progressColor);
+
+                        // draw the inner bar (progress)
+                        $quadVA->draw();
+                    }
+                }
             }
         ));
     }
