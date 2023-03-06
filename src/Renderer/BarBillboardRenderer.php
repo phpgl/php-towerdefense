@@ -44,7 +44,8 @@ class BarBillboardRenderer
 
         uniform mat4 projection;
         uniform mat4 view;
-        uniform vec3 position_worldspace;
+        uniform float offset_worldspace_y;
+        uniform vec3 anchor_worldspace;
         uniform vec2 bar_size;
         uniform float bar_progress;
         uniform float border_width;
@@ -53,12 +54,13 @@ class BarBillboardRenderer
 
         void main()
         {
+            vec4 position_worldspace = vec4(anchor_worldspace.x, anchor_worldspace.y + offset_worldspace_y, anchor_worldspace.z, 1.0f);
             vec2 bar_size = bar_size;
             bar_size.x -= border_width * 2.0f;
             bar_size.y -= border_width * 2.0f;
             bar_size.x *= bar_progress;
             vec2 clip_space_bar_size = vec2((bar_size.x / render_target_size.x) * render_target_content_scale.x, (bar_size.y / render_target_size.y) * render_target_content_scale.y);
-            gl_Position = projection * view * vec4(position_worldspace, 1.0f);
+            gl_Position = projection * view * position_worldspace;
             gl_Position /= gl_Position.w;
             gl_Position.xy += a_position.xy * clip_space_bar_size;
         }
@@ -112,7 +114,6 @@ class BarBillboardRenderer
                 $barProgress = 0.5; // 50%
                 $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
                 $innerBarBorderWidth = 4.0;
-                $center = new Vec3(0.0, 2.0, 0.0); // 2.0 for y spacing above the model / object
                 $renderTargetSize = new Vec2($renderTarget->width(), $renderTarget->height());
                 $renderTargetContentScale = new Vec2($renderTarget->contentScaleX, $renderTarget->contentScaleY);
 
@@ -136,16 +137,13 @@ class BarBillboardRenderer
                             }
                         }
 
-                        $barCenter = $center->copy();
-                        $barCenter->y = $barCenter->y + ($highestY * $transform->scale->y);
-                        $barCenter = $barCenter + $transform->getWorldPosition($entities);
-
-                        $this->shaderProgram->setUniformVec3('position_worldspace', $barCenter);
                         $this->shaderProgram->setUniformVec2('bar_size', $barSize);
                         $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
                         $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
                         $this->shaderProgram->setUniformFloat('border_width', 0.0);
                         $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
+                        $this->shaderProgram->setUniformFloat('offset_worldspace_y', 2.0 + ($highestY * $transform->scale->y));
+                        $this->shaderProgram->setUniformVec3('anchor_worldspace', $transform->getWorldPosition($entities));
 
                         // set the bar color of the outer bar
                         $this->shaderProgram->setUniformVec4('bar_color', $barColor);
