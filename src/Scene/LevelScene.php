@@ -93,7 +93,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         // prepare the rendering systems 
         $this->terrainRenderer = new TerrainRenderer($container->resolveGL(), $container->resolveShaders());
         $this->roadRenderer = new RoadRenderer($container->resolveGL(), $container->resolveShaders());
-        $this->barBillboardRenderer = new BarBillboardRenderer($container->resolveGL(), $container->resolveShaders());
+        $this->barBillboardRenderer = new BarBillboardRenderer($container->resolveGL());
         $this->renderingSystem = new VISULowPolyRenderingSystem($container->resolveGL(), $container->resolveShaders());
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
         $this->renderingSystem->addGeometryRenderer($this->roadRenderer);

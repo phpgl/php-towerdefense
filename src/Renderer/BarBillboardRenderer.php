@@ -34,8 +34,7 @@ class BarBillboardRenderer
     private ShaderProgram $shaderProgram;
 
     public function __construct(
-        private GLState $gl,
-        private ShaderCollection $shaders
+        private GLState $gl
     ) {
         // create the shader program
         $this->shaderProgram = new ShaderProgram($gl);
@@ -92,6 +91,10 @@ class BarBillboardRenderer
                 // activate the shader program
                 $this->shaderProgram->use();
 
+                // set the gl state
+                glDisable(GL_DEPTH_TEST);
+                glEnable(GL_CULL_FACE);
+
                 // set the bar config static for now for testing, we will get this from the bar components later on
                 $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
                 $barWidth = 120.0;
@@ -136,9 +139,6 @@ class BarBillboardRenderer
                         // set the bar color of the outer bar
                         $this->shaderProgram->setUniformVec4('bar_color', $barColor);
 
-                        glDisable(GL_DEPTH_TEST);
-                        glDisable(GL_CULL_FACE);
-
                         // draw the outer bar
                         $quadVA->draw();
 
@@ -147,9 +147,6 @@ class BarBillboardRenderer
 
                         // set the bar color of the inner bar
                         $this->shaderProgram->setUniformVec4('bar_color', $progressColor);
-
-                        glDisable(GL_DEPTH_TEST);
-                        glDisable(GL_CULL_FACE);
 
                         // draw the inner bar (progress)
                         $quadVA->draw();
