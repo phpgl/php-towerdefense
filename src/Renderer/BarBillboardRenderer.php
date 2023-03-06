@@ -55,14 +55,15 @@ class BarBillboardRenderer
         void main()
         {
             vec4 position_worldspace = vec4(anchor_worldspace.x, anchor_worldspace.y + offset_worldspace_y, anchor_worldspace.z, 1.0f);
-            vec2 bar_size = bar_size;
-            bar_size.x -= border_width * 2.0f;
-            bar_size.y -= border_width * 2.0f;
-            bar_size.x *= bar_progress;
-            vec2 clip_space_bar_size = vec2((bar_size.x / render_target_size.x) * render_target_content_scale.x, (bar_size.y / render_target_size.y) * render_target_content_scale.y);
+            vec2 final_bar_size = bar_size;
+            final_bar_size.x -= border_width * 2.0f;
+            final_bar_size.y -= border_width * 2.0f;
+            final_bar_size.x *= bar_progress;
+            vec2 clip_space_bar_size = vec2((final_bar_size.x / render_target_size.x) * render_target_content_scale.x, (final_bar_size.y / render_target_size.y) * render_target_content_scale.y);
             gl_Position = projection * view * position_worldspace;
             gl_Position /= gl_Position.w;
             gl_Position.xy += a_position.xy * clip_space_bar_size;
+            gl_Position.x -= (((bar_size.x - final_bar_size.x) / render_target_size.x) * render_target_content_scale.x) - (((border_width * 2.0f) / render_target_size.x) * render_target_content_scale.x);
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
