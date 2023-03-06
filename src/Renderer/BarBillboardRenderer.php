@@ -46,12 +46,15 @@ class BarBillboardRenderer
         uniform mat4 view;
         uniform vec3 position_worldspace;
         uniform vec2 bar_size;
+        uniform vec2 render_target_size;
+        uniform vec2 render_target_content_scale;
 
         void main()
         {
-            gl_Position = (projection * view) * vec4(position_worldspace, 1.0f);
+            vec2 clip_space_bar_size = vec2((bar_size.x / render_target_size.x) * render_target_content_scale.x, (bar_size.y / render_target_size.y) * render_target_content_scale.y);
+            gl_Position = projection * view * vec4(position_worldspace, 1.0f);
             gl_Position /= gl_Position.w;
-            gl_Position.xy += a_position.xy * bar_size;
+            gl_Position.xy += a_position.xy * clip_space_bar_size;
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
@@ -99,15 +102,17 @@ class BarBillboardRenderer
                 $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
                 $barWidth = 120.0;
                 $barHeight = 20.0;
-                $barSize = new Vec2(($barWidth / $renderTarget->width()) * $renderTarget->contentScaleX, ($barHeight / $renderTarget->height()) * $renderTarget->contentScaleY);
+                $barSize = new Vec2($barWidth, $barHeight);
                 $barProgress = 0.5; // 50%
                 $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
                 $innerBarBorderWidth = 4.0;
                 $fullBorderWidth = ($innerBarBorderWidth * 2.0);
                 $innerBarWidth = ($barWidth - $fullBorderWidth) * $barProgress;
                 $innerBarHeight = $barHeight - $fullBorderWidth;
-                $innerBarSize = new Vec2(($innerBarWidth / $renderTarget->width()) * $renderTarget->contentScaleX, ($innerBarHeight / $renderTarget->height()) * $renderTarget->contentScaleY);
+                $innerBarSize = new Vec2($innerBarWidth, $innerBarHeight);
                 $center = new Vec3(0.0, 2.0, 0.0); // 2.0 for y spacing above the model / object
+                $renderTargetSize = new Vec2($renderTarget->width(), $renderTarget->height());
+                $renderTargetContentScale = new Vec2($renderTarget->contentScaleX, $renderTarget->contentScaleY);
 
                 // get the camera data
                 $cameraData = $data->get(CameraData::class);
@@ -135,6 +140,8 @@ class BarBillboardRenderer
 
                         $this->shaderProgram->setUniformVec3('position_worldspace', $barCenter);
                         $this->shaderProgram->setUniformVec2('bar_size', $barSize);
+                        $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
+                        $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
 
                         // set the bar color of the outer bar
                         $this->shaderProgram->setUniformVec4('bar_color', $barColor);
