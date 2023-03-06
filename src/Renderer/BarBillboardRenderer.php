@@ -130,18 +130,20 @@ class BarBillboardRenderer
                 $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
 
                 $barEntities = [];
+                // get all the health components
                 foreach ($entities->view(HealthComponent::class) as $entity => $health) {
                     $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
                     $barProgress = $health->health;
                     $barEntities[] = [$entity, $progressColor, $barProgress];
                 }
+                // get all the progress components
                 foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
                     $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
                     $barProgress = $progress->progress;
                     $barEntities[] = [$entity, $progressColor, $barProgress];
                 }
 
-                // for now lets assume every craft_racer.obj model has a bar
+                // loop through all the bar entities
                 foreach ($barEntities as $barEntity) {
                     // get the model of this entity
                     $model = $entities->get($barEntity[0], DynamicRenderableModel::class);
@@ -155,6 +157,7 @@ class BarBillboardRenderer
                         }
                     }
 
+                    // set the bar config for the outer bar
                     $this->shaderProgram->setUniformVec2('bar_size', $barSize);
                     $this->shaderProgram->setUniformFloat('border_width', 0.0);
                     $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
@@ -167,7 +170,7 @@ class BarBillboardRenderer
                     // draw the outer bar
                     $quadVA->draw();
 
-                    // set the bar config for the inner bar
+                    // set the additional bar config for the inner bar
                     $this->shaderProgram->setUniformFloat('border_width', $innerBarBorderWidth);
                     $this->shaderProgram->setUniformFloat('bar_progress', $barEntity[2]);
 
