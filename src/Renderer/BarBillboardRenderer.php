@@ -120,9 +120,11 @@ class BarBillboardRenderer
                 // get the camera data
                 $cameraData = $data->get(CameraData::class);
 
-                // set the projection matrix
+                // set the projection matrix and other uniforms which are static for every bar
                 $this->shaderProgram->setUniformMat4('projection', false, $cameraData->projection);
                 $this->shaderProgram->setUniformMat4('view', false, $cameraData->view);
+                $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
+                $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
 
                 // for now lets assume every craft_racer.obj model has a bar
                 foreach ($entities->view(DynamicRenderableModel::class) as $entity => $model) {
@@ -138,8 +140,6 @@ class BarBillboardRenderer
                         }
 
                         $this->shaderProgram->setUniformVec2('bar_size', $barSize);
-                        $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
-                        $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
                         $this->shaderProgram->setUniformFloat('border_width', 0.0);
                         $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
                         $this->shaderProgram->setUniformFloat('offset_worldspace_y', 2.0 + ($highestY * $transform->scale->y));
