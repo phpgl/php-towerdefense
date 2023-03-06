@@ -3,6 +3,8 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use TowerDefense\Component\HealthComponent;
+use TowerDefense\Component\ProgressComponent;
 use TowerDefense\Debug\DebugTextOverlay;
 use TowerDefense\Renderer\BarBillboardRenderer;
 use TowerDefense\Renderer\RoadRenderer;
@@ -220,6 +222,10 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
 
         $transform->setParent($this->entities, $someObject);
 
+        // for debugging only:
+        $this->entities->registerComponent(HealthComponent::class);
+        $this->entities->registerComponent(ProgressComponent::class);
+
         // create a racer craft
         $newObj = $this->entities->create();
         $renderable = $this->entities->attach($newObj, new DynamicRenderableModel);
@@ -228,6 +234,20 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $transform->scale = $transform->scale * 5.0;
         $transform->position->z = -50.0;
         $transform->position->y = 10.0;
+        $health = $this->entities->attach($newObj, new HealthComponent);
+        $health->health = 0.5;
+
+        // create another racer craft
+        $newObj = $this->entities->create();
+        $renderable = $this->entities->attach($newObj, new DynamicRenderableModel);
+        $renderable->model = $this->loadedObjects['craft_racer.obj']; // <- render the turret
+        $transform = $this->entities->attach($newObj, new Transform);
+        $transform->scale = $transform->scale * 5.0;
+        $transform->position->x = 50.0;
+        $transform->position->z = -50.0;
+        $transform->position->y = 10.0;
+        $progress = $this->entities->attach($newObj, new ProgressComponent);
+        $progress->progress = 1.0;
     }
 
     /**

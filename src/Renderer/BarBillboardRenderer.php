@@ -5,6 +5,8 @@ namespace TowerDefense\Renderer;
 use GL\Math\Vec2;
 use GL\Math\Vec3;
 use GL\Math\Vec4;
+use TowerDefense\Component\HealthComponent;
+use TowerDefense\Component\ProgressComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\Geo\Transform;
@@ -44,13 +46,15 @@ class BarBillboardRenderer
 
         uniform mat4 projection;
         uniform mat4 view;
+        uniform vec2 render_target_size;
+        uniform vec2 render_target_content_scale;
+        
         uniform float offset_worldspace_y;
         uniform vec3 anchor_worldspace;
+        
         uniform vec2 bar_size;
         uniform float bar_progress;
         uniform float border_width;
-        uniform vec2 render_target_size;
-        uniform vec2 render_target_content_scale;
 
         void main()
         {
@@ -112,8 +116,6 @@ class BarBillboardRenderer
                 $barWidth = 120.0;
                 $barHeight = 20.0;
                 $barSize = new Vec2($barWidth, $barHeight);
-                $barProgress = 0.5; // 50%
-                $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
                 $innerBarBorderWidth = 4.0;
                 $renderTargetSize = new Vec2($renderTarget->width(), $renderTarget->height());
                 $renderTargetContentScale = new Vec2($renderTarget->contentScaleX, $renderTarget->contentScaleY);
@@ -127,41 +129,53 @@ class BarBillboardRenderer
                 $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
                 $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
 
+                $barEntities = [];
+                foreach ($entities->view(HealthComponent::class) as $entity => $health) {
+                    $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
+                    $barProgress = $health->health;
+                    $barEntities[] = [$entity, $progressColor, $barProgress];
+                }
+                foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
+                    $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
+                    $barProgress = $progress->progress;
+                    $barEntities[] = [$entity, $progressColor, $barProgress];
+                }
+
                 // for now lets assume every craft_racer.obj model has a bar
-                foreach ($entities->view(DynamicRenderableModel::class) as $entity => $model) {
-                    if ($model->model->name === 'craft_racer.obj') {
-                        // get the transform of this entity
-                        $transform = $entities->get($entity, Transform::class);
-                        $highestY = 0.0;
-                        foreach ($model->model->meshes as $mesh) {
-                            // get the maxaabb with the highest y value
-                            if ($mesh->aabb->max->y > $highestY) {
-                                $highestY = $mesh->aabb->max->y;
-                            }
+                foreach ($barEntities as $barEntity) {
+                    // get the model of this entity
+                    $model = $entities->get($barEntity[0], DynamicRenderableModel::class);
+                    // get the transform of this entity
+                    $transform = $entities->get($barEntity[0], Transform::class);
+                    $highestY = 0.0;
+                    foreach ($model->model->meshes as $mesh) {
+                        // get the maxaabb with the highest y value
+                        if ($mesh->aabb->max->y > $highestY) {
+                            $highestY = $mesh->aabb->max->y;
                         }
-
-                        $this->shaderProgram->setUniformVec2('bar_size', $barSize);
-                        $this->shaderProgram->setUniformFloat('border_width', 0.0);
-                        $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
-                        $this->shaderProgram->setUniformFloat('offset_worldspace_y', 2.0 + ($highestY * $transform->scale->y));
-                        $this->shaderProgram->setUniformVec3('anchor_worldspace', $transform->getWorldPosition($entities));
-
-                        // set the bar color of the outer bar
-                        $this->shaderProgram->setUniformVec4('bar_color', $barColor);
-
-                        // draw the outer bar
-                        $quadVA->draw();
-
-                        // set the bar config for the inner bar
-                        $this->shaderProgram->setUniformFloat('border_width', $innerBarBorderWidth);
-                        $this->shaderProgram->setUniformFloat('bar_progress', $barProgress);
-
-                        // set the bar color of the inner bar
-                        $this->shaderProgram->setUniformVec4('bar_color', $progressColor);
-
-                        // draw the inner bar (progress)
-                        $quadVA->draw();
                     }
+
+                    $this->shaderProgram->setUniformVec2('bar_size', $barSize);
+                    $this->shaderProgram->setUniformFloat('border_width', 0.0);
+                    $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
+                    $this->shaderProgram->setUniformFloat('offset_worldspace_y', 2.0 + ($highestY * $transform->scale->y));
+                    $this->shaderProgram->setUniformVec3('anchor_worldspace', $transform->getWorldPosition($entities));
+
+                    // set the bar color of the outer bar
+                    $this->shaderProgram->setUniformVec4('bar_color', $barColor);
+
+                    // draw the outer bar
+                    $quadVA->draw();
+
+                    // set the bar config for the inner bar
+                    $this->shaderProgram->setUniformFloat('border_width', $innerBarBorderWidth);
+                    $this->shaderProgram->setUniformFloat('bar_progress', $barEntity[2]);
+
+                    // set the bar color of the inner bar
+                    $this->shaderProgram->setUniformVec4('bar_color', $barEntity[1]);
+
+                    // draw the inner bar (progress)
+                    $quadVA->draw();
                 }
             }
         ));
