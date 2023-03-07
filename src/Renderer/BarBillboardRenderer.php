@@ -85,6 +85,59 @@ class BarBillboardRenderer
 
     public function render(EntitiesInterface $entities, RenderContext $context): void
     {
+        // set the bar config static for now for testing, we will get this from the bar components later on
+        $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
+        $barWidth = 120.0;
+        $barHeight = 20.0;
+        $barSize = new Vec2($barWidth, $barHeight);
+        $innerBarBorderWidth = 4.0;
+        $barEntities = [];
+
+        // get all the health components
+        foreach ($entities->view(HealthComponent::class) as $entity => $health) {
+            $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
+            $barProgress = $health->health;
+            // get the model of this entity
+            $model = $entities->get($entity, DynamicRenderableModel::class);
+            // get the transform of this entity
+            $transform = $entities->get($entity, Transform::class);
+            $highestY = 0.0;
+            foreach ($model->model->meshes as $mesh) {
+                // get the maxaabb with the highest y value
+                if ($mesh->aabb->max->y > $highestY) {
+                    $highestY = $mesh->aabb->max->y;
+                }
+            }
+            $yOffset = 2.0 + ($highestY * $transform->scale->y);
+            $anchor = $transform->getWorldPosition($entities);
+            $barEntities[] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
+        }
+
+        // get all the progress components
+        foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
+            $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
+            $barProgress = $progress->progress;
+            // get the model of this entity
+            $model = $entities->get($entity, DynamicRenderableModel::class);
+            // get the transform of this entity
+            $transform = $entities->get($entity, Transform::class);
+            $highestY = 0.0;
+            foreach ($model->model->meshes as $mesh) {
+                // get the maxaabb with the highest y value
+                if ($mesh->aabb->max->y > $highestY) {
+                    $highestY = $mesh->aabb->max->y;
+                }
+            }
+            $yOffset = 2.0 + ($highestY * $transform->scale->y);
+            $anchor = $transform->getWorldPosition($entities);
+            $barEntities[] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
+        }
+
+        // if there are no entities with health or progress components, return
+        if (count($barEntities) == 0) {
+            return;
+        }
+
         $context->pipeline->addPass(new CallbackPass(
             // setup
             function (RenderPass $pass, RenderPipeline $pipeline, PipelineContainer $data) {
@@ -93,7 +146,7 @@ class BarBillboardRenderer
                 $pipeline->writes($pass, $backbuffer);
             },
             // execute
-            function (PipelineContainer $data, PipelineResources $resources) use ($entities) {
+            function (PipelineContainer $data, PipelineResources $resources) use ($barEntities) {
                 /** @var QuadVertexArray */
                 $quadVA = $resources->cacheStaticResource('quadva', function (GLState $gl) {
                     return new QuadVertexArray($gl);
@@ -111,12 +164,6 @@ class BarBillboardRenderer
                 glDisable(GL_DEPTH_TEST);
                 glEnable(GL_CULL_FACE);
 
-                // set the bar config static for now for testing, we will get this from the bar components later on
-                $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
-                $barWidth = 120.0;
-                $barHeight = 20.0;
-                $barSize = new Vec2($barWidth, $barHeight);
-                $innerBarBorderWidth = 4.0;
                 $renderTargetSize = new Vec2($renderTarget->width(), $renderTarget->height());
                 $renderTargetContentScale = new Vec2($renderTarget->contentScaleX, $renderTarget->contentScaleY);
 
@@ -129,53 +176,27 @@ class BarBillboardRenderer
                 $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
                 $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
 
-                $barEntities = [];
-                // get all the health components
-                foreach ($entities->view(HealthComponent::class) as $entity => $health) {
-                    $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
-                    $barProgress = $health->health;
-                    $barEntities[] = [$entity, $progressColor, $barProgress];
-                }
-                // get all the progress components
-                foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
-                    $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
-                    $barProgress = $progress->progress;
-                    $barEntities[] = [$entity, $progressColor, $barProgress];
-                }
-
                 // loop through all the bar entities
                 foreach ($barEntities as $barEntity) {
-                    // get the model of this entity
-                    $model = $entities->get($barEntity[0], DynamicRenderableModel::class);
-                    // get the transform of this entity
-                    $transform = $entities->get($barEntity[0], Transform::class);
-                    $highestY = 0.0;
-                    foreach ($model->model->meshes as $mesh) {
-                        // get the maxaabb with the highest y value
-                        if ($mesh->aabb->max->y > $highestY) {
-                            $highestY = $mesh->aabb->max->y;
-                        }
-                    }
-
                     // set the bar config for the outer bar
-                    $this->shaderProgram->setUniformVec2('bar_size', $barSize);
+                    $this->shaderProgram->setUniformVec2('bar_size', $barEntity[0]);
                     $this->shaderProgram->setUniformFloat('border_width', 0.0);
                     $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
-                    $this->shaderProgram->setUniformFloat('offset_worldspace_y', 2.0 + ($highestY * $transform->scale->y));
-                    $this->shaderProgram->setUniformVec3('anchor_worldspace', $transform->getWorldPosition($entities));
+                    $this->shaderProgram->setUniformFloat('offset_worldspace_y', $barEntity[5]);
+                    $this->shaderProgram->setUniformVec3('anchor_worldspace', $barEntity[6]);
 
                     // set the bar color of the outer bar
-                    $this->shaderProgram->setUniformVec4('bar_color', $barColor);
+                    $this->shaderProgram->setUniformVec4('bar_color', $barEntity[1]);
 
                     // draw the outer bar
                     $quadVA->draw();
 
                     // set the additional bar config for the inner bar
-                    $this->shaderProgram->setUniformFloat('border_width', $innerBarBorderWidth);
-                    $this->shaderProgram->setUniformFloat('bar_progress', $barEntity[2]);
+                    $this->shaderProgram->setUniformFloat('border_width', $barEntity[4]);
+                    $this->shaderProgram->setUniformFloat('bar_progress', $barEntity[3]);
 
                     // set the bar color of the inner bar
-                    $this->shaderProgram->setUniformVec4('bar_color', $barEntity[1]);
+                    $this->shaderProgram->setUniformVec4('bar_color', $barEntity[2]);
 
                     // draw the inner bar (progress)
                     $quadVA->draw();
