@@ -198,7 +198,7 @@ class BarBillboardRenderer
                     $quadVA->draw();
 
                     // set the additional bar config for the inner bar
-                    $this->shaderProgram->setUniformFloat('z_offset', -0.1);
+                    $this->shaderProgram->setUniformFloat('z_offset', -0.01);
                     $this->shaderProgram->setUniformFloat('border_width', $barEntity[4]);
                     $this->shaderProgram->setUniformFloat('bar_progress', $barEntity[3]);
 
