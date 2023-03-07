@@ -44,11 +44,13 @@ class BarBillboardRenderer
         #version 330 core
         layout (location = 0) in vec3 a_position;
 
+        uniform vec3 camera_position;
         uniform mat4 projection;
         uniform mat4 view;
         uniform vec2 render_target_size;
         uniform vec2 render_target_content_scale;
         
+        uniform float z_offset;
         uniform float offset_worldspace_y;
         uniform vec3 anchor_worldspace;
         
@@ -68,6 +70,7 @@ class BarBillboardRenderer
             gl_Position /= gl_Position.w;
             gl_Position.xy += a_position.xy * clip_space_bar_size;
             gl_Position.x -= (((bar_size.x - final_bar_size.x) / render_target_size.x) * render_target_content_scale.x) - (((border_width * 2.0f) / render_target_size.x) * render_target_content_scale.x);
+            gl_Position.z = (distance(camera_position, anchor_worldspace) + z_offset) / 1000.0f;
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
@@ -86,7 +89,6 @@ class BarBillboardRenderer
     public function render(EntitiesInterface $entities, RenderContext $context): void
     {
         // set the bar config static for now for testing, we will get this from the bar components later on
-        $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
         $barWidth = 120.0;
         $barHeight = 20.0;
         $barSize = new Vec2($barWidth, $barHeight);
@@ -94,8 +96,9 @@ class BarBillboardRenderer
         $barEntities = [];
 
         // get all the health components
+        $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
+        $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
         foreach ($entities->view(HealthComponent::class) as $entity => $health) {
-            $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
             $barProgress = $health->health;
             // get the model of this entity
             $model = $entities->get($entity, DynamicRenderableModel::class);
@@ -114,8 +117,9 @@ class BarBillboardRenderer
         }
 
         // get all the progress components
+        $barColor = new Vec4(0.34, 0.34, 0.34, 1.0);
+        $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
         foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
-            $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
             $barProgress = $progress->progress;
             // get the model of this entity
             $model = $entities->get($entity, DynamicRenderableModel::class);
@@ -161,7 +165,7 @@ class BarBillboardRenderer
                 $this->shaderProgram->use();
 
                 // set the gl state
-                glDisable(GL_DEPTH_TEST);
+                glEnable(GL_DEPTH_TEST);
                 glEnable(GL_CULL_FACE);
 
                 $renderTargetSize = new Vec2($renderTarget->width(), $renderTarget->height());
@@ -171,6 +175,7 @@ class BarBillboardRenderer
                 $cameraData = $data->get(CameraData::class);
 
                 // set the projection matrix and other uniforms which are static for every bar
+                $this->shaderProgram->setUniformVec3('camera_position', $cameraData->frameCamera->transform->position);
                 $this->shaderProgram->setUniformMat4('projection', false, $cameraData->projection);
                 $this->shaderProgram->setUniformMat4('view', false, $cameraData->view);
                 $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
@@ -182,6 +187,7 @@ class BarBillboardRenderer
                     $this->shaderProgram->setUniformVec2('bar_size', $barEntity[0]);
                     $this->shaderProgram->setUniformFloat('border_width', 0.0);
                     $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
+                    $this->shaderProgram->setUniformFloat('z_offset', 0.0);
                     $this->shaderProgram->setUniformFloat('offset_worldspace_y', $barEntity[5]);
                     $this->shaderProgram->setUniformVec3('anchor_worldspace', $barEntity[6]);
 
@@ -192,6 +198,7 @@ class BarBillboardRenderer
                     $quadVA->draw();
 
                     // set the additional bar config for the inner bar
+                    $this->shaderProgram->setUniformFloat('z_offset', -0.1);
                     $this->shaderProgram->setUniformFloat('border_width', $barEntity[4]);
                     $this->shaderProgram->setUniformFloat('bar_progress', $barEntity[3]);
 
