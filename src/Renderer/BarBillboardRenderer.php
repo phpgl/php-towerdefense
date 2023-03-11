@@ -2,6 +2,7 @@
 
 namespace TowerDefense\Renderer;
 
+use GL\Buffer\FloatBuffer;
 use GL\Math\Vec2;
 use GL\Math\Vec3;
 use GL\Math\Vec4;
@@ -20,7 +21,6 @@ use VISU\Graphics\Rendering\PipelineContainer;
 use VISU\Graphics\Rendering\PipelineResources;
 use VISU\Graphics\Rendering\RenderPass;
 use VISU\Graphics\Rendering\RenderPipeline;
-use VISU\Graphics\ShaderCollection;
 use VISU\Graphics\ShaderProgram;
 use VISU\Graphics\ShaderStage;
 
@@ -33,30 +33,47 @@ use VISU\Graphics\ShaderStage;
  */
 class BarBillboardRenderer
 {
+    private const MAX_BARS = 500; // max number of bars to render
+
     private ShaderProgram $shaderProgram;
+
+    private int $barInstanceBuffer = 0;
+    private int $barAnchorProgressBuffer = 0;
+    private FloatBuffer $barInstanceData;
+    private FloatBuffer $barAnchorProgressData;
 
     public function __construct(
         private GLState $gl
     ) {
+        // configure buffers
+        $this->barInstanceData = new FloatBuffer();
+        $this->barInstanceData->reserve((self::MAX_BARS * 2) * 9);
+        glGenBuffers(1, $this->barInstanceBuffer);
+
+        $this->barAnchorProgressData = new FloatBuffer();
+        $this->barAnchorProgressData->reserve((self::MAX_BARS * 2) * 4);
+        glGenBuffers(1, $this->barAnchorProgressBuffer);
+
         // create the shader program
         $this->shaderProgram = new ShaderProgram($gl);
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::VERTEX, <<< 'GLSL'
         #version 330 core
         layout (location = 0) in vec3 a_position;
+        layout (location = 2) in vec2 bar_size;
+        layout (location = 3) in float border_width;
+        layout (location = 4) in float z_offset;
+        layout (location = 5) in float offset_worldspace_y;
+        layout (location = 6) in vec4 bar_color;
+        layout (location = 7) in vec3 anchor_worldspace;
+        layout (location = 8) in float bar_progress;
 
         uniform vec3 camera_position;
         uniform mat4 projection;
         uniform mat4 view;
         uniform vec2 render_target_size;
         uniform vec2 render_target_content_scale;
-        
-        uniform float z_offset;
-        uniform float offset_worldspace_y;
-        uniform vec3 anchor_worldspace;
-        
-        uniform vec2 bar_size;
-        uniform float bar_progress;
-        uniform float border_width;
+
+        out vec4 fColor;
 
         void main()
         {
@@ -71,16 +88,17 @@ class BarBillboardRenderer
             gl_Position.xy += a_position.xy * clip_space_bar_size;
             gl_Position.x -= (((bar_size.x - final_bar_size.x) / render_target_size.x) * render_target_content_scale.x) - (((border_width * 2.0f) / render_target_size.x) * render_target_content_scale.x);
             gl_Position.z = (distance(camera_position, anchor_worldspace) + z_offset) / 1000.0f;
+            fColor = bar_color;
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
         #version 330 core
-        uniform vec4 bar_color;
+        in vec4 fColor;
         out vec4 fragment_color;
 
         void main()
         {
-            fragment_color = bar_color;
+            fragment_color = fColor;
         }
         GLSL));
         $this->shaderProgram->link();
@@ -142,6 +160,31 @@ class BarBillboardRenderer
             return;
         }
 
+        // clear the buffers, we will take care of caching later (TODO: Caching)
+        $this->barInstanceData->clear();
+        $this->barAnchorProgressData->clear();
+
+        // loop through all the bar entities
+        foreach ($barEntities as $barEntity) {
+            // outer bar
+            $this->barInstanceData->pushVec2($barEntity[0]); // bar size
+            $this->barInstanceData->push(0.0); // border width
+            $this->barInstanceData->push(0.0); // z offset
+            $this->barInstanceData->push($barEntity[5]); // offset worldspace y
+            $this->barInstanceData->pushVec4($barEntity[1]); // bar color
+            $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
+            $this->barAnchorProgressData->push(1.0); // bar progress
+
+            // inner bar
+            $this->barInstanceData->pushVec2($barEntity[0]); // bar size
+            $this->barInstanceData->push($barEntity[4]); // border width
+            $this->barInstanceData->push(-0.01); // z offset
+            $this->barInstanceData->push($barEntity[5]); // offset worldspace y
+            $this->barInstanceData->pushVec4($barEntity[2]); // bar color
+            $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
+            $this->barAnchorProgressData->push($barEntity[3]); // bar progress
+        }
+
         $context->pipeline->addPass(new CallbackPass(
             // setup
             function (RenderPass $pass, RenderPipeline $pipeline, PipelineContainer $data) {
@@ -160,6 +203,48 @@ class BarBillboardRenderer
                 $backbuffer = $data->get(BackbufferData::class)->target;
                 $renderTarget = $resources->getRenderTarget($backbuffer);
                 $renderTarget->preparePass();
+
+                // buffers
+                glBindBuffer(GL_ARRAY_BUFFER, $this->barInstanceBuffer);
+                glBufferData(GL_ARRAY_BUFFER, $this->barInstanceData, GL_STATIC_DRAW);
+
+                // bar size
+                glEnableVertexAttribArray(2);
+                glVertexAttribPointer(2, 2, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 0);
+                glVertexAttribDivisor(2, 1);
+
+                // border width
+                glEnableVertexAttribArray(3);
+                glVertexAttribPointer(3, 1, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 2 * GL_SIZEOF_FLOAT);
+                glVertexAttribDivisor(3, 1);
+
+                // z offset
+                glEnableVertexAttribArray(4);
+                glVertexAttribPointer(4, 1, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
+                glVertexAttribDivisor(4, 1);
+
+                // offset worldspace y
+                glEnableVertexAttribArray(5);
+                glVertexAttribPointer(5, 1, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
+                glVertexAttribDivisor(5, 1);
+
+                // bar color
+                glEnableVertexAttribArray(6);
+                glVertexAttribPointer(6, 4, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 5 * GL_SIZEOF_FLOAT);
+                glVertexAttribDivisor(6, 1);
+
+                glBindBuffer(GL_ARRAY_BUFFER, $this->barAnchorProgressBuffer);
+                glBufferData(GL_ARRAY_BUFFER, $this->barAnchorProgressData, GL_STATIC_DRAW);
+
+                // anchor worldspace
+                glEnableVertexAttribArray(7);
+                glVertexAttribPointer(7, 3, GL_FLOAT, false, 4 * GL_SIZEOF_FLOAT, 0);
+                glVertexAttribDivisor(7, 1);
+
+                // progress
+                glEnableVertexAttribArray(8);
+                glVertexAttribPointer(8, 1, GL_FLOAT, false, 4 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
+                glVertexAttribDivisor(8, 1);
 
                 // activate the shader program
                 $this->shaderProgram->use();
@@ -181,33 +266,11 @@ class BarBillboardRenderer
                 $this->shaderProgram->setUniformVec2('render_target_size', $renderTargetSize);
                 $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
 
-                // loop through all the bar entities
-                foreach ($barEntities as $barEntity) {
-                    // set the bar config for the outer bar
-                    $this->shaderProgram->setUniformVec2('bar_size', $barEntity[0]);
-                    $this->shaderProgram->setUniformFloat('border_width', 0.0);
-                    $this->shaderProgram->setUniformFloat('bar_progress', 1.0);
-                    $this->shaderProgram->setUniformFloat('z_offset', 0.0);
-                    $this->shaderProgram->setUniformFloat('offset_worldspace_y', $barEntity[5]);
-                    $this->shaderProgram->setUniformVec3('anchor_worldspace', $barEntity[6]);
-
-                    // set the bar color of the outer bar
-                    $this->shaderProgram->setUniformVec4('bar_color', $barEntity[1]);
-
-                    // draw the outer bar
-                    $quadVA->draw();
-
-                    // set the additional bar config for the inner bar
-                    $this->shaderProgram->setUniformFloat('z_offset', -0.01);
-                    $this->shaderProgram->setUniformFloat('border_width', $barEntity[4]);
-                    $this->shaderProgram->setUniformFloat('bar_progress', $barEntity[3]);
-
-                    // set the bar color of the inner bar
-                    $this->shaderProgram->setUniformVec4('bar_color', $barEntity[2]);
-
-                    // draw the inner bar (progress)
-                    $quadVA->draw();
-                }
+                // draw the bars
+                $quadVA->bind();
+                glVertexAttribDivisor(0, 0);
+                glVertexAttribDivisor(1, 0);
+                glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count($barEntities) * 2);
             }
         ));
     }
