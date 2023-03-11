@@ -232,14 +232,19 @@ class BarBillboardRenderer
             }
             $yOffset = 2.0 + ($highestY * $transform->scale->y);
             if (isset($this->bars[$entity]['health'])) {
-                $barProgress = $health->health;
-                $this->bars[$entity]['health'][3] = $barProgress;
-                $this->bars[$entity]['health'][5] = $yOffset;
-                $this->bars[$entity]['health'][6] = $anchor;
-                $updateAnchorProgressData = true;
+                if (
+                    $this->bars[$entity]['health'][3] != $barProgress ||
+                    $this->bars[$entity]['health'][5] != $yOffset ||
+                    $this->bars[$entity]['health'][6]->length() != $anchor->length()
+                ) {
+                    $this->bars[$entity]['health'][3] = $barProgress;
+                    $this->bars[$entity]['health'][5] = $yOffset;
+                    $this->bars[$entity]['health'][6] = $anchor->copy();
+                    $updateAnchorProgressData = true;
+                }
                 continue;
             }
-            $this->bars[$entity]['health'] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
+            $this->bars[$entity]['health'] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor->copy()];
             $updateInstanceData = true;
             $updateAnchorProgressData = true;
         }
@@ -263,14 +268,19 @@ class BarBillboardRenderer
             }
             $yOffset = 2.0 + ($highestY * $transform->scale->y);
             if (isset($this->bars[$entity]['progress'])) {
-                $barProgress = $progress->progress;
-                $this->bars[$entity]['progress'][3] = $barProgress;
-                $this->bars[$entity]['progress'][5] = $yOffset;
-                $this->bars[$entity]['progress'][6] = $anchor;
-                $updateAnchorProgressData = true;
+                if (
+                    $this->bars[$entity]['progress'][3] != $barProgress ||
+                    $this->bars[$entity]['progress'][5] != $yOffset ||
+                    $this->bars[$entity]['progress'][6]->length() != $anchor->length()
+                ) {
+                    $this->bars[$entity]['progress'][3] = $barProgress;
+                    $this->bars[$entity]['progress'][5] = $yOffset;
+                    $this->bars[$entity]['progress'][6] = $anchor->copy();
+                    $updateAnchorProgressData = true;
+                }
                 continue;
             }
-            $this->bars[$entity]['progress'] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
+            $this->bars[$entity]['progress'] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor->copy()];
             $updateInstanceData = true;
             $updateAnchorProgressData = true;
         }
@@ -283,7 +293,7 @@ class BarBillboardRenderer
         if ($updateInstanceData) {
             $this->barInstanceData->clear();
             foreach ($this->bars as $entity => $barTypes) {
-                foreach ($barTypes as $barType => $barEntity) {
+                foreach ($barTypes as $barEntity) {
                     // outer bar
                     $this->barInstanceData->pushVec2($barEntity[0]); // bar size
                     $this->barInstanceData->push(0.0); // border width
@@ -304,7 +314,7 @@ class BarBillboardRenderer
         if ($updateAnchorProgressData) {
             $this->barAnchorProgressData->clear();
             foreach ($this->bars as $entity => $barTypes) {
-                foreach ($barTypes as $barType => $barEntity) {
+                foreach ($barTypes as $barEntity) {
                     // outer bar
                     $this->barAnchorProgressData->push($barEntity[5]); // offset worldspace y
                     $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
