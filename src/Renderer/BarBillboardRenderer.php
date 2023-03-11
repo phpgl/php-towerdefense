@@ -35,23 +35,25 @@ class BarBillboardRenderer
 {
     private const MAX_BARS = 500; // max number of bars to render
 
-    private ShaderProgram $shaderProgram;
+    private ShaderProgram $shaderProgram; // the shader program
 
-    private int $barInstanceBuffer = 0;
-    private int $barAnchorProgressBuffer = 0;
-    private FloatBuffer $barInstanceData;
-    private FloatBuffer $barAnchorProgressData;
+    private int $barInstanceBuffer = 0; // buffer for the instance data
+    private int $barAnchorProgressBuffer = 0; // buffer for the anchor and progress data
+    private FloatBuffer $barInstanceData; // instance data
+    private FloatBuffer $barAnchorProgressData; // anchor and progress data
+
+    private array $bars = []; // the bars to render, used for cache checks
 
     public function __construct(
         private GLState $gl
     ) {
         // configure buffers
         $this->barInstanceData = new FloatBuffer();
-        $this->barInstanceData->reserve((self::MAX_BARS * 2) * 9);
+        $this->barInstanceData->reserve((self::MAX_BARS * 2) * 8);
         glGenBuffers(1, $this->barInstanceBuffer);
 
         $this->barAnchorProgressData = new FloatBuffer();
-        $this->barAnchorProgressData->reserve((self::MAX_BARS * 2) * 4);
+        $this->barAnchorProgressData->reserve((self::MAX_BARS * 2) * 5);
         glGenBuffers(1, $this->barAnchorProgressBuffer);
 
         // create the shader program
@@ -62,8 +64,8 @@ class BarBillboardRenderer
         layout (location = 2) in vec2 bar_size;
         layout (location = 3) in float border_width;
         layout (location = 4) in float z_offset;
-        layout (location = 5) in float offset_worldspace_y;
-        layout (location = 6) in vec4 bar_color;
+        layout (location = 5) in vec4 bar_color;
+        layout (location = 6) in float offset_worldspace_y;
         layout (location = 7) in vec3 anchor_worldspace;
         layout (location = 8) in float bar_progress;
 
@@ -106,83 +108,10 @@ class BarBillboardRenderer
 
     public function render(EntitiesInterface $entities, RenderContext $context): void
     {
-        // set the bar config static for now for testing, we will get this from the bar components later on
-        $barWidth = 120.0;
-        $barHeight = 20.0;
-        $barSize = new Vec2($barWidth, $barHeight);
-        $innerBarBorderWidth = 4.0;
-        $barEntities = [];
+        $this->processBars($entities);
 
-        // get all the health components
-        $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
-        $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
-        foreach ($entities->view(HealthComponent::class) as $entity => $health) {
-            $barProgress = $health->health;
-            // get the model of this entity
-            $model = $entities->get($entity, DynamicRenderableModel::class);
-            // get the transform of this entity
-            $transform = $entities->get($entity, Transform::class);
-            $highestY = 0.0;
-            foreach ($model->model->meshes as $mesh) {
-                // get the maxaabb with the highest y value
-                if ($mesh->aabb->max->y > $highestY) {
-                    $highestY = $mesh->aabb->max->y;
-                }
-            }
-            $yOffset = 2.0 + ($highestY * $transform->scale->y);
-            $anchor = $transform->getWorldPosition($entities);
-            $barEntities[] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
-        }
-
-        // get all the progress components
-        $barColor = new Vec4(0.34, 0.34, 0.34, 1.0);
-        $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
-        foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
-            $barProgress = $progress->progress;
-            // get the model of this entity
-            $model = $entities->get($entity, DynamicRenderableModel::class);
-            // get the transform of this entity
-            $transform = $entities->get($entity, Transform::class);
-            $highestY = 0.0;
-            foreach ($model->model->meshes as $mesh) {
-                // get the maxaabb with the highest y value
-                if ($mesh->aabb->max->y > $highestY) {
-                    $highestY = $mesh->aabb->max->y;
-                }
-            }
-            $yOffset = 2.0 + ($highestY * $transform->scale->y);
-            $anchor = $transform->getWorldPosition($entities);
-            $barEntities[] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
-        }
-
-        // if there are no entities with health or progress components, return
-        if (count($barEntities) == 0) {
+        if (count($this->bars) == 0) {
             return;
-        }
-
-        // clear the buffers, we will take care of caching later (TODO: Caching)
-        $this->barInstanceData->clear();
-        $this->barAnchorProgressData->clear();
-
-        // loop through all the bar entities
-        foreach ($barEntities as $barEntity) {
-            // outer bar
-            $this->barInstanceData->pushVec2($barEntity[0]); // bar size
-            $this->barInstanceData->push(0.0); // border width
-            $this->barInstanceData->push(0.0); // z offset
-            $this->barInstanceData->push($barEntity[5]); // offset worldspace y
-            $this->barInstanceData->pushVec4($barEntity[1]); // bar color
-            $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
-            $this->barAnchorProgressData->push(1.0); // bar progress
-
-            // inner bar
-            $this->barInstanceData->pushVec2($barEntity[0]); // bar size
-            $this->barInstanceData->push($barEntity[4]); // border width
-            $this->barInstanceData->push(-0.01); // z offset
-            $this->barInstanceData->push($barEntity[5]); // offset worldspace y
-            $this->barInstanceData->pushVec4($barEntity[2]); // bar color
-            $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
-            $this->barAnchorProgressData->push($barEntity[3]); // bar progress
         }
 
         $context->pipeline->addPass(new CallbackPass(
@@ -193,7 +122,7 @@ class BarBillboardRenderer
                 $pipeline->writes($pass, $backbuffer);
             },
             // execute
-            function (PipelineContainer $data, PipelineResources $resources) use ($barEntities) {
+            function (PipelineContainer $data, PipelineResources $resources) {
                 /** @var QuadVertexArray */
                 $quadVA = $resources->cacheStaticResource('quadva', function (GLState $gl) {
                     return new QuadVertexArray($gl);
@@ -204,46 +133,45 @@ class BarBillboardRenderer
                 $renderTarget = $resources->getRenderTarget($backbuffer);
                 $renderTarget->preparePass();
 
-                // buffers
+                // instance data
                 glBindBuffer(GL_ARRAY_BUFFER, $this->barInstanceBuffer);
-                glBufferData(GL_ARRAY_BUFFER, $this->barInstanceData, GL_STATIC_DRAW);
 
                 // bar size
                 glEnableVertexAttribArray(2);
-                glVertexAttribPointer(2, 2, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 0);
+                glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 0);
                 glVertexAttribDivisor(2, 1);
 
                 // border width
                 glEnableVertexAttribArray(3);
-                glVertexAttribPointer(3, 1, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 2 * GL_SIZEOF_FLOAT);
+                glVertexAttribPointer(3, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 2 * GL_SIZEOF_FLOAT);
                 glVertexAttribDivisor(3, 1);
 
                 // z offset
                 glEnableVertexAttribArray(4);
-                glVertexAttribPointer(4, 1, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
+                glVertexAttribPointer(4, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
                 glVertexAttribDivisor(4, 1);
 
-                // offset worldspace y
+                // bar color
                 glEnableVertexAttribArray(5);
-                glVertexAttribPointer(5, 1, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
+                glVertexAttribPointer(5, 4, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
                 glVertexAttribDivisor(5, 1);
 
-                // bar color
-                glEnableVertexAttribArray(6);
-                glVertexAttribPointer(6, 4, GL_FLOAT, false, 9 * GL_SIZEOF_FLOAT, 5 * GL_SIZEOF_FLOAT);
-                glVertexAttribDivisor(6, 1);
-
+                // anchor progress data
                 glBindBuffer(GL_ARRAY_BUFFER, $this->barAnchorProgressBuffer);
-                glBufferData(GL_ARRAY_BUFFER, $this->barAnchorProgressData, GL_STATIC_DRAW);
+
+                // offset worldspace y
+                glEnableVertexAttribArray(6);
+                glVertexAttribPointer(6, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 0);
+                glVertexAttribDivisor(6, 1);
 
                 // anchor worldspace
                 glEnableVertexAttribArray(7);
-                glVertexAttribPointer(7, 3, GL_FLOAT, false, 4 * GL_SIZEOF_FLOAT, 0);
+                glVertexAttribPointer(7, 3, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 1 * GL_SIZEOF_FLOAT);
                 glVertexAttribDivisor(7, 1);
 
                 // progress
                 glEnableVertexAttribArray(8);
-                glVertexAttribPointer(8, 1, GL_FLOAT, false, 4 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
+                glVertexAttribPointer(8, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
                 glVertexAttribDivisor(8, 1);
 
                 // activate the shader program
@@ -270,8 +198,125 @@ class BarBillboardRenderer
                 $quadVA->bind();
                 glVertexAttribDivisor(0, 0);
                 glVertexAttribDivisor(1, 0);
-                glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count($barEntities) * 2);
+                glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count($this->bars) * 2);
             }
         ));
+    }
+
+    private function processBars(EntitiesInterface $entities): void
+    {
+        // set the bar config static for now for testing, we will get this from the bar components later on
+        $barWidth = 120.0;
+        $barHeight = 20.0;
+        $barSize = new Vec2($barWidth, $barHeight);
+        $innerBarBorderWidth = 4.0;
+        $updateInstanceData = false;
+        $updateAnchorProgressData = false;
+
+        // get all the health components
+        $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
+        $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
+        foreach ($entities->view(HealthComponent::class) as $entity => $health) {
+            $barProgress = $health->health;
+            // get the model of this entity
+            $model = $entities->get($entity, DynamicRenderableModel::class);
+            // get the transform of this entity
+            $transform = $entities->get($entity, Transform::class);
+            $anchor = $transform->getWorldPosition($entities);
+            $highestY = 0.0;
+            foreach ($model->model->meshes as $mesh) {
+                // get the maxaabb with the highest y value
+                if ($mesh->aabb->max->y > $highestY) {
+                    $highestY = $mesh->aabb->max->y;
+                }
+            }
+            $yOffset = 2.0 + ($highestY * $transform->scale->y);
+            if (isset($this->bars[$entity]['health'])) {
+                $barProgress = $health->health;
+                $this->bars[$entity]['health'][3] = $barProgress;
+                $this->bars[$entity]['health'][5] = $yOffset;
+                $this->bars[$entity]['health'][6] = $anchor;
+                $updateAnchorProgressData = true;
+                continue;
+            }
+            $this->bars[$entity]['health'] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
+            $updateInstanceData = true;
+            $updateAnchorProgressData = true;
+        }
+
+        // get all the progress components
+        $barColor = new Vec4(0.34, 0.34, 0.34, 1.0);
+        $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
+        foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
+            $barProgress = $progress->progress;
+            // get the model of this entity
+            $model = $entities->get($entity, DynamicRenderableModel::class);
+            // get the transform of this entity
+            $transform = $entities->get($entity, Transform::class);
+            $anchor = $transform->getWorldPosition($entities);
+            $highestY = 0.0;
+            foreach ($model->model->meshes as $mesh) {
+                // get the maxaabb with the highest y value
+                if ($mesh->aabb->max->y > $highestY) {
+                    $highestY = $mesh->aabb->max->y;
+                }
+            }
+            $yOffset = 2.0 + ($highestY * $transform->scale->y);
+            if (isset($this->bars[$entity]['progress'])) {
+                $barProgress = $progress->progress;
+                $this->bars[$entity]['progress'][3] = $barProgress;
+                $this->bars[$entity]['progress'][5] = $yOffset;
+                $this->bars[$entity]['progress'][6] = $anchor;
+                $updateAnchorProgressData = true;
+                continue;
+            }
+            $this->bars[$entity]['progress'] = [$barSize, $barColor, $progressColor, $barProgress, $innerBarBorderWidth, $yOffset, $anchor];
+            $updateInstanceData = true;
+            $updateAnchorProgressData = true;
+        }
+
+        // if there are no entities with health or progress components, return
+        if (count($this->bars) == 0) {
+            return;
+        }
+
+        if ($updateInstanceData) {
+            $this->barInstanceData->clear();
+            foreach ($this->bars as $entity => $barTypes) {
+                foreach ($barTypes as $barType => $barEntity) {
+                    // outer bar
+                    $this->barInstanceData->pushVec2($barEntity[0]); // bar size
+                    $this->barInstanceData->push(0.0); // border width
+                    $this->barInstanceData->push(0.0); // z offset
+                    $this->barInstanceData->pushVec4($barEntity[1]); // bar color
+
+                    // inner bar
+                    $this->barInstanceData->pushVec2($barEntity[0]); // bar size
+                    $this->barInstanceData->push($barEntity[4]); // border width
+                    $this->barInstanceData->push(-0.01); // z offset
+                    $this->barInstanceData->pushVec4($barEntity[2]); // bar color
+                }
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, $this->barInstanceBuffer);
+            glBufferData(GL_ARRAY_BUFFER, $this->barInstanceData, GL_STATIC_DRAW);
+        }
+
+        if ($updateAnchorProgressData) {
+            $this->barAnchorProgressData->clear();
+            foreach ($this->bars as $entity => $barTypes) {
+                foreach ($barTypes as $barType => $barEntity) {
+                    // outer bar
+                    $this->barAnchorProgressData->push($barEntity[5]); // offset worldspace y
+                    $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
+                    $this->barAnchorProgressData->push(1.0); // bar progress
+                    // inner bar
+                    $this->barAnchorProgressData->push($barEntity[5]); // offset worldspace y
+                    $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
+                    $this->barAnchorProgressData->push($barEntity[3]); // bar progress
+                }
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, $this->barAnchorProgressBuffer);
+            glBufferData(GL_ARRAY_BUFFER, $this->barAnchorProgressData, GL_STATIC_DRAW);
+        }
     }
 }
