@@ -33,8 +33,6 @@ use VISU\Graphics\ShaderStage;
  */
 class BarBillboardRenderer
 {
-    private const MAX_BARS = 500; // max number of bars to render
-
     private ShaderProgram $shaderProgram; // the shader program
 
     private int $barInstanceBuffer = 0; // buffer for the instance data
@@ -49,11 +47,9 @@ class BarBillboardRenderer
     ) {
         // configure buffers
         $this->barInstanceData = new FloatBuffer();
-        $this->barInstanceData->reserve((self::MAX_BARS * 2) * 8);
         glGenBuffers(1, $this->barInstanceBuffer);
 
         $this->barAnchorProgressData = new FloatBuffer();
-        $this->barAnchorProgressData->reserve((self::MAX_BARS * 2) * 5);
         glGenBuffers(1, $this->barAnchorProgressBuffer);
 
         // create the shader program
@@ -212,11 +208,17 @@ class BarBillboardRenderer
         $innerBarBorderWidth = 4.0;
         $updateInstanceData = false;
         $updateAnchorProgressData = false;
+        $listedBars = [];
 
         // get all the health components
         $barColor = new Vec4(0.0, 0.0, 0.0, 1.0);
         $progressColor = new Vec4(0.5, 0.0, 0.0, 1.0);
         foreach ($entities->view(HealthComponent::class) as $entity => $health) {
+            if (isset($this->bars[$entity]['progress'])) {
+                // currently we only support one bar being displayed per entity, health or progress
+                continue;
+            }
+            $listedBars[$entity]['health'] = true;
             $barProgress = $health->health;
             // get the model of this entity
             $model = $entities->get($entity, DynamicRenderableModel::class);
@@ -231,6 +233,7 @@ class BarBillboardRenderer
                 }
             }
             $yOffset = 2.0 + ($highestY * $transform->scale->y);
+            // if the bar already exists, check if the data has changed
             if (isset($this->bars[$entity]['health'])) {
                 if (
                     $this->bars[$entity]['health'][3] != $barProgress ||
@@ -253,6 +256,11 @@ class BarBillboardRenderer
         $barColor = new Vec4(0.34, 0.34, 0.34, 1.0);
         $progressColor = new Vec4(0.00, 1.00, 0.29, 1.0);
         foreach ($entities->view(ProgressComponent::class) as $entity => $progress) {
+            if (isset($this->bars[$entity]['health'])) {
+                // currently we only support one bar being displayed per entity, health or progress
+                continue;
+            }
+            $listedBars[$entity]['progress'] = true;
             $barProgress = $progress->progress;
             // get the model of this entity
             $model = $entities->get($entity, DynamicRenderableModel::class);
@@ -267,6 +275,7 @@ class BarBillboardRenderer
                 }
             }
             $yOffset = 2.0 + ($highestY * $transform->scale->y);
+            // if the bar already exists, check if the data has changed
             if (isset($this->bars[$entity]['progress'])) {
                 if (
                     $this->bars[$entity]['progress'][3] != $barProgress ||
@@ -290,8 +299,30 @@ class BarBillboardRenderer
             return;
         }
 
+        // remove any bars that are no longer needed
+        foreach ($this->bars as $entity => $barTypes) {
+            // if we don't have any more bars for this entity, remove it
+            if (!isset($listedBars[$entity])) {
+                unset($this->bars[$entity]);
+                $updateInstanceData = true;
+                $updateAnchorProgressData = true;
+                continue;
+            }
+            // if we don't have a health or progress bar for this entity, remove it
+            foreach ($barTypes as $barType => $barEntity) {
+                if (!isset($listedBars[$entity][$barType])) {
+                    unset($this->bars[$entity][$barType]);
+                    $updateInstanceData = true;
+                    $updateAnchorProgressData = true;
+                }
+            }
+        }
+
+        // update the instance data
         if ($updateInstanceData) {
-            $this->barInstanceData->clear();
+            if ($this->barInstanceData->size() > 0) {
+                $this->barInstanceData->clear();
+            }
             foreach ($this->bars as $entity => $barTypes) {
                 foreach ($barTypes as $barEntity) {
                     // outer bar
@@ -299,7 +330,6 @@ class BarBillboardRenderer
                     $this->barInstanceData->push(0.0); // border width
                     $this->barInstanceData->push(0.0); // z offset
                     $this->barInstanceData->pushVec4($barEntity[1]); // bar color
-
                     // inner bar
                     $this->barInstanceData->pushVec2($barEntity[0]); // bar size
                     $this->barInstanceData->push($barEntity[4]); // border width
@@ -311,8 +341,11 @@ class BarBillboardRenderer
             glBufferData(GL_ARRAY_BUFFER, $this->barInstanceData, GL_STATIC_DRAW);
         }
 
+        // update the anchor progress data
         if ($updateAnchorProgressData) {
-            $this->barAnchorProgressData->clear();
+            if ($this->barAnchorProgressData->size() > 0) {
+                $this->barAnchorProgressData->clear();
+            }
             foreach ($this->bars as $entity => $barTypes) {
                 foreach ($barTypes as $barEntity) {
                     // outer bar
