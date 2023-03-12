@@ -25,9 +25,9 @@ use VISU\Graphics\ShaderProgram;
 use VISU\Graphics\ShaderStage;
 
 /**
- * Billboard renderer
+ * Billboard renderer for bars.
  * 
- * Renders billboards for entities.
+ * Renders bar billboards for entities having a HealthComponent or a ProgressComponent.
  * 
  * @package TowerDefense\Renderer
  */
@@ -104,8 +104,10 @@ class BarBillboardRenderer
 
     public function render(EntitiesInterface $entities, RenderContext $context): void
     {
+        // process the entities
         $this->processBars($entities);
 
+        // check if there are any bars to render
         if (count($this->bars) == 0) {
             return;
         }
