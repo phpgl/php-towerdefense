@@ -187,11 +187,14 @@ class Game implements GameLoopDelegate
         
         // render debug text
         $this->dbg3D->attachPass($pipeline, $backbuffer);
-        $this->dbgText->attachPass($pipeline, $backbuffer, $deltaTime);
+        $this->dbgText->attachPass($pipeline, $this->pipelineResources, $backbuffer, $deltaTime);
         $this->dbgConsole->attachPass($pipeline, $this->pipelineResources, $backbuffer);
 
         // execute the pipeline
-        $pipeline->execute($this->tick++);
+        $pipeline->execute($this->tick++, $this->container->resolveProfiler());
+
+        // finalize the profiler
+        $this->container->resolveProfiler()->finalize();
 
         $this->window->swapBuffers();
     }

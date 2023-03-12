@@ -84,6 +84,7 @@ class RoadRenderer implements GBufferGeometryPassInterface, GPUHeightmapGeometry
     public function renderToGBuffer(EntitiesInterface $entities, RenderContext $context, GBufferPassData $gbufferData) : void
     {
         $context->pipeline->addPass(new CallbackPass(
+            'Road',
             // setup
             function(RenderPass $pass, RenderPipeline $pipeline, PipelineContainer $data)
             {
