@@ -134,7 +134,7 @@ class BarBillboardRenderer
                 // instance data
                 glBindBuffer(GL_ARRAY_BUFFER, $this->barInstanceBuffer);
 
-                // bar size
+                // bar size, we start at 2 because the first two locations are reserved for the quad vertex position and texcoords
                 glEnableVertexAttribArray(2);
                 glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 0);
                 glVertexAttribDivisor(2, 1);
@@ -194,9 +194,9 @@ class BarBillboardRenderer
 
                 // draw the bars
                 $quadVA->bind();
-                glVertexAttribDivisor(0, 0);
-                glVertexAttribDivisor(1, 0);
-                glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count($this->bars) * 2);
+                glVertexAttribDivisor(0, 0); // position
+                glVertexAttribDivisor(1, 0); // texcoord (not used)
+                glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count($this->bars) * 2); // * 2 because we have to quads per bar (outer border and inner progress)
             }
         ));
     }
@@ -327,12 +327,12 @@ class BarBillboardRenderer
             }
             foreach ($this->bars as $entity => $barTypes) {
                 foreach ($barTypes as $barEntity) {
-                    // outer bar
+                    // outer bar (border bar)
                     $this->barInstanceData->pushVec2($barEntity[0]); // bar size
                     $this->barInstanceData->push(0.0); // border width
                     $this->barInstanceData->push(0.0); // z offset
                     $this->barInstanceData->pushVec4($barEntity[1]); // bar color
-                    // inner bar
+                    // inner bar (progress bar)
                     $this->barInstanceData->pushVec2($barEntity[0]); // bar size
                     $this->barInstanceData->push($barEntity[4]); // border width
                     $this->barInstanceData->push(-0.01); // z offset
@@ -350,11 +350,11 @@ class BarBillboardRenderer
             }
             foreach ($this->bars as $entity => $barTypes) {
                 foreach ($barTypes as $barEntity) {
-                    // outer bar
+                    // outer bar (border bar)
                     $this->barAnchorProgressData->push($barEntity[5]); // offset worldspace y
                     $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
                     $this->barAnchorProgressData->push(1.0); // bar progress
-                    // inner bar
+                    // inner bar (progress bar)
                     $this->barAnchorProgressData->push($barEntity[5]); // offset worldspace y
                     $this->barAnchorProgressData->pushVec3($barEntity[6]); // anchor worldspace
                     $this->barAnchorProgressData->push($barEntity[3]); // bar progress
