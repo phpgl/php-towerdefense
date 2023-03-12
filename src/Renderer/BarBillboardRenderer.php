@@ -72,6 +72,7 @@ class BarBillboardRenderer
         uniform vec2 render_target_content_scale;
 
         out vec4 fColor;
+        out float distance_to_camera;
 
         void main()
         {
@@ -85,18 +86,22 @@ class BarBillboardRenderer
             gl_Position /= gl_Position.w;
             gl_Position.xy += a_position.xy * clip_space_bar_size;
             gl_Position.x -= (((bar_size.x - final_bar_size.x) / render_target_size.x) * render_target_content_scale.x) - (((border_width * 2.0f) / render_target_size.x) * render_target_content_scale.x);
-            gl_Position.z = (distance(camera_position, anchor_worldspace) + z_offset) / 1000.0f;
+            distance_to_camera = distance(camera_position, anchor_worldspace);
+            gl_Position.z = (distance_to_camera + z_offset) / 1000.0f;
             fColor = bar_color;
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
         #version 330 core
+        in float distance_to_camera;
         in vec4 fColor;
         out vec4 fragment_color;
 
         void main()
         {
+            float fade_factor = 1.0 - smoothstep(0.0, 1.0, clamp((distance_to_camera - 75.0) / 150.0, 0.0, 1.0));
             fragment_color = fColor;
+            fragment_color.a *= fade_factor;
         }
         GLSL));
         $this->shaderProgram->link();
@@ -178,6 +183,9 @@ class BarBillboardRenderer
                 // set the gl state
                 glEnable(GL_DEPTH_TEST);
                 glEnable(GL_CULL_FACE);
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glBlendEquation(GL_FUNC_ADD);
 
                 $renderTargetSize = new Vec2($renderTarget->width(), $renderTarget->height());
                 $renderTargetContentScale = new Vec2($renderTarget->contentScaleX, $renderTarget->contentScaleY);
