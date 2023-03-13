@@ -10,7 +10,11 @@ use TowerDefense\Component\ProgressComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
+use VISU\Exception\VISUException;
 use VISU\Geo\Transform;
+use VISU\Graphics\Exception\ShaderProgramException;
+use VISU\Graphics\Exception\ShaderCompileException;
+use VISU\Graphics\Exception\ShaderProgramLinkingException;
 use VISU\Graphics\GLState;
 use VISU\Graphics\QuadVertexArray;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
@@ -40,9 +44,18 @@ class BarBillboardSystem implements SystemInterface
     private int $barAnchorProgressBuffer = 0; // buffer for the anchor and progress data
     private FloatBuffer $barInstanceData; // instance data
     private FloatBuffer $barAnchorProgressData; // anchor and progress data
-
     private array $bars = []; // the bars to render, used for cache checks
 
+    /**
+     * Constructor
+     * 
+     * @param GLState $gl 
+     * @param LPModelCollection $models 
+     * @return void 
+     * @throws ShaderProgramException 
+     * @throws ShaderCompileException 
+     * @throws ShaderProgramLinkingException 
+     */
     public function __construct(
         private GLState $gl,
         private LPModelCollection $models
@@ -201,6 +214,14 @@ class BarBillboardSystem implements SystemInterface
         }*/
     }
 
+    /**
+     * Renders the bars
+     * 
+     * @param EntitiesInterface $entities 
+     * @param RenderContext $context 
+     * @return void 
+     * @throws VISUException 
+     */
     public function render(EntitiesInterface $entities, RenderContext $context): void
     {
         // process the entities
@@ -264,6 +285,13 @@ class BarBillboardSystem implements SystemInterface
         ));
     }
 
+    /**
+     * Processes the bars from the entities and manage the buffers
+     * 
+     * @param EntitiesInterface $entities 
+     * @return void 
+     * @throws VISUException 
+     */
     private function processBars(EntitiesInterface $entities): void
     {
         // set the bar config static for now for testing, we will get this from the bar components later on
