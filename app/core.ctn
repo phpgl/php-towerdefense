@@ -31,3 +31,15 @@
     - enableVISUIncludes()
     - addVISUShaders()
     - scanShaderDirectory(:visu.path.resources.shader)
+
+
+/**
+ * Model collection and loading 
+ */
+@models: VISU\System\VISULowPoly\LPModelCollection
+@models.loader: VISU\System\VISULowPoly\LPObjLoader(@GL)
+
+/**
+ * Profiler
+ */
+@profiler: VISU\Instrument\CompatProfiler

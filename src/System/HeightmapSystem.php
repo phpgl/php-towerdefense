@@ -2,16 +2,19 @@
 
 namespace TowerDefense\System;
 
+use GL\Buffer\FloatBuffer;
 use TowerDefense\Component\HeightmapComponent;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
 use VISU\Graphics\Camera;
 use VISU\Graphics\GLState;
 use VISU\Graphics\Heightmap\GPUHeightmapRenderer;
+use VISU\Graphics\Heightmap\Heightmap;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
 use VISU\Graphics\Rendering\RenderContext;
 use VISU\Graphics\RenderTarget;
 use VISU\OS\Input;
+use VISU\OS\Logger;
 
 class HeightmapSystem implements SystemInterface
 {
@@ -109,6 +112,8 @@ class HeightmapSystem implements SystemInterface
      */
     public function caputreHeightmap(EntitiesInterface $entities, HeightmapComponent $component) : void
     {
+        Logger::info('Capturing heightmap...');
+        $component->heightmap = new Heightmap(new FloatBuffer(), 1, 1, 1.0); // create a dummy heightmap to destroy the old one
         $component->heightmap = $this->heightmapRenderer->caputreHeightmap($entities, $this->heightGeometryProducers);
     }
 }

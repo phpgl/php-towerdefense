@@ -2,8 +2,10 @@
 
 namespace TowerDefense\Renderer;
 
+use GL\Buffer\FloatBuffer;
 use GL\Geometry\ObjFileParser;
 use GL\Math\Mat4;
+use GL\Math\Vec3;
 use TowerDefense\Pass\TerrainPass;
 use VISU\ECS\EntitiesInterface;
 use VISU\Graphics\GLState;
@@ -56,6 +58,65 @@ class TerrainRenderer implements GBufferGeometryPassInterface, GPUHeightmapGeome
 
         /** @var \GL\Buffer\FloatBuffer */
         $vertexData = $model->getVertices('pn');
+
+        $this->gl->bindVertexArray($this->terrainVAO);
+        $this->gl->bindVertexArrayBuffer($this->terrainVBO);
+
+        glBufferData(GL_ARRAY_BUFFER, $vertexData, GL_STATIC_DRAW);
+
+        $this->vertexCount = $vertexData->size() / 6;
+    }
+
+    /**
+     * Creates a flat grid terrain with the given width, height and scale.
+     * The scale is the distance between each vertex in the grid. Default is 1.0. = 1m 
+     * 
+     * @param int $width 
+     * @param int $height 
+     * @param float $scale 
+     * @return void 
+     */
+    public function createFlatTerrain(int $width, int $height, float $scale = 1.0) : void
+    {
+        $vertexData = new FloatBuffer();
+        $vertexData->reserve($width * $height * 6 * 6);
+
+        // generate a mesh of two triangles for each vertex
+        // width hand height position on the grid
+
+        $w05 = (int) ($width * 0.5);
+        $h05 = (int) ($height * 0.5);
+
+        for ($y = 0; $y < $height; $y++) 
+        {
+            for ($x = 0; $x < $width; $x++) 
+            {
+                $px = ($x - $w05);
+                $pz = ($y - $h05);
+
+                $vertexData->pushArray([
+                    // triangle 1
+                    $px * $scale, 0.0, $pz * $scale, // v1 position
+                    0.0, 1.0, 0.0, // v1 normal
+
+                    $px * $scale, 0.0, ($pz + 1) * $scale, // v2 position
+                    0.0, 1.0, 0.0, // v2 normal
+
+                    ($px + 1) * $scale, 0.0, ($pz + 1) * $scale, // v3 position
+                    0.0, 1.0, 0.0, // v3 normal
+
+                    // triangle 2
+                    $px * $scale, 0.0, $pz * $scale, // v1 position
+                    0.0, 1.0, 0.0, // v1 normal
+
+                    ($px + 1) * $scale, 0.0, ($pz + 1) * $scale, // v3 position
+                    0.0, 1.0, 0.0, // v3 normal
+
+                    ($px + 1) * $scale, 0.0, $pz * $scale, // v4 position
+                    0.0, 1.0, 0.0, // v4 normal
+                ]);
+            }
+        }
 
         $this->gl->bindVertexArray($this->terrainVAO);
         $this->gl->bindVertexArrayBuffer($this->terrainVBO);

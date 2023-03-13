@@ -15,7 +15,7 @@ class LevelPlayScene extends LevelScene
      */
     public function getName() : string
     {
-        return 'TowerDefense Level [PLAY]';
+        return sprintf('TowerDefense (%s) [PLAY]', $this->level->name);
     }
 
     /**

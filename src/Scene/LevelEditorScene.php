@@ -3,16 +3,21 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
+use GL\Math\GLM;
 use GL\Math\Vec3;
 use TowerDefense\Component\HeightmapComponent;
+use TowerDefense\Component\LevelSceneryComponent;
 use TowerDefense\Debug\DebugTextOverlay;
 use VISU\Component\Dev\GizmoComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\D3D;
 use VISU\Geo\Transform;
 use VISU\Graphics\Rendering\RenderContext;
+use VISU\OS\Input;
 use VISU\OS\Key;
+use VISU\OS\Logger;
 use VISU\Runtime\DebugConsole;
+use VISU\Signals\Input\DropSignal;
 use VISU\Signals\Runtime\ConsoleCommandSignal;
 use VISU\System\Dev\GizmoEditorSystem;
 
@@ -24,6 +29,16 @@ class LevelEditorScene extends LevelScene
     private int $selectedEntity = 0;
 
     /**
+     * Enables / disables snapping
+     */
+    private bool $snappingEnabled = false;
+
+    /**
+     * The current snapping grid, 0.0 = no snapping
+     */
+    private float $snappingGrid = 0.0;
+
+    /**
      * Systems
      */
     private GizmoEditorSystem $gizmoEditorSystem;
@@ -33,7 +48,7 @@ class LevelEditorScene extends LevelScene
      */
     public function getName() : string
     {
-        return 'TowerDefense Level [EDITOR]';
+        return sprintf('TowerDefense (%s) [PLAY]', $this->level->name);
     }
 
     /**
@@ -90,6 +105,42 @@ class LevelEditorScene extends LevelScene
            
             $this->selectedEntity = $newObj;
         });
+
+        // listen for file drop events
+        $this->container->resolveVisuDispatcher()->register(Input::EVENT_DROP, function(DropSignal $signal) 
+        {
+            if (count($signal->paths) !== 1) {
+                Logger::error('Only one file can be dropped at a time');
+                return;
+            }
+
+            // get the basename of the file, as our model files are currently all in one directory
+            $objName = basename($signal->paths[0]);
+
+            // check if its registered model file
+            $modelCollection = $this->container->resolveModels();
+            if (!$modelCollection->has($objName)) {
+                Logger::error('Model not found in current collection: ' . $objName . ' (did you forget to add it to the collection before dropping it?)');
+                return;
+            }
+
+            $droppedObj = $this->entities->create();
+
+            // attach the model component
+            $renderable = $this->entities->attach($droppedObj, new DynamicRenderableModel);
+            $renderable->modelIdentifier = $objName;
+            
+            // attach a transform component and move it to the cursor position
+            $transform = $this->entities->attach($droppedObj, new Transform);
+            $heightmapComponent = $this->entities->getSingleton(HeightmapComponent::class);
+            $transform->position = $heightmapComponent->cursorWorldPosition->copy();
+
+            // make the object part of the scenery
+            $this->entities->attach($droppedObj, new LevelSceneryComponent);
+
+            // select the dropped object
+            $this->devEntityPickerDidSelectEntity($droppedObj);
+        });
     }
 
     /**
@@ -124,6 +175,27 @@ class LevelEditorScene extends LevelScene
         // always enable raycasting
         $heightmapComponent->enableRaycasting = true;
 
+        // should we rebuild the heightmap?
+        if ($inputContext->actions->didButtonPress('rebuild_heightmap')) {
+            $heightmapComponent->requiresCapture = true;
+        }
+
+        // should we enable / disable snapping?
+        if ($inputContext->actions->didButtonPress('toggle_snapping')) {
+            $this->snappingEnabled = !$this->snappingEnabled;
+        }
+
+        // adjust the snapping grid
+        if ($this->snappingEnabled) {
+            if ($inputContext->actions->isButtonDown('fine_change')) {
+                $this->snappingGrid = 0.1;
+            } else {
+                $this->snappingGrid = 1.0;
+            }
+        } else {
+            $this->snappingGrid = 0.0;
+        }
+
         // if an entity is selected and has a transform component
         // we update the position until the user clicks the mouse button again
         if ($this->entities->valid($this->selectedEntity) && $this->entities->has($this->selectedEntity, Transform::class)) 
@@ -133,6 +205,11 @@ class LevelEditorScene extends LevelScene
                 $this->entities->attach($this->selectedEntity, new GizmoComponent);
             }
 
+            // be sure to copy the snapping state 
+            // to the gizmo component
+            $gizmoComponent = $this->entities->get($this->selectedEntity, GizmoComponent::class);
+            $gizmoComponent->snapGrid = $this->snappingGrid;
+
             $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
             // update the position to heightmap cursor position
@@ -141,20 +218,64 @@ class LevelEditorScene extends LevelScene
                 $transform->position = $heightmapComponent->cursorWorldPosition->copy();
             }
 
-            // rotate 
-            if ($inputContext->actions->isButtonDown('rotate_left')) {
-                $transform->orientation->rotate(0.01, new Vec3(0, 1, 0));
-            } else if ($inputContext->actions->isButtonDown('rotate_right')) {
-                $transform->orientation->rotate(-0.01, new Vec3(0, 1, 0));
+            // rotation
+            // ---
+            // in snapping mode we rotate the object to the nearest 90 degree angle (15 degree steps for fine changes)
+            // per button press, while in non-snapping mode we rotate the object continuously
+            if ($this->snappingEnabled) 
+            {
+                $angle = GLM::radians($inputContext->actions->isButtonDown('fine_change') ? 15 : 90);
+
+                if ($inputContext->actions->didButtonPress('rotate_left')) {
+                    $transform->orientation->rotate($angle, new Vec3(0, 1, 0));
+                } else if ($inputContext->actions->didButtonPress('rotate_right')) {
+                    $transform->orientation->rotate(-$angle, new Vec3(0, 1, 0));
+                }
+            }
+            else 
+            {
+                $rotation = $inputContext->actions->isButtonDown('fine_change') ? 0.01 : 0.1;
+
+                if ($inputContext->actions->isButtonDown('rotate_left')) {
+                    $transform->orientation->rotate($rotation, new Vec3(0, 1, 0));
+                } else if ($inputContext->actions->isButtonDown('rotate_right')) {
+                    $transform->orientation->rotate(-$rotation, new Vec3(0, 1, 0));
+                }
             }
 
             // scale
-            if ($inputContext->actions->isButtonDown('scale_up')) {
-                $transform->scale += 0.1;
-            } else if ($inputContext->actions->isButtonDown('scale_down')) {
-                $transform->scale -= 0.1;
-            }
+            // ---
+            // in snapping mode we scale the object by 1.0 or 0.1 per button press
+            // while in non-snapping mode we scale the object continuously
+            if ($inputContext->actions->isButtonDown('scale_up') || $inputContext->actions->isButtonDown('scale_down')) {
+                if ($this->snappingEnabled) {
+                    if ($inputContext->actions->didButtonPress('scale_up')) {
+                        $transform->scale += $this->snappingGrid;
+                    } else if ($inputContext->actions->didButtonPress('scale_down')) {
+                        $transform->scale -= $this->snappingGrid;
+                    }
 
+                    $transform->scale->x = round($transform->scale->x / $this->snappingGrid) * $this->snappingGrid;
+                    $transform->scale->y = round($transform->scale->y / $this->snappingGrid) * $this->snappingGrid;
+                    $transform->scale->z = round($transform->scale->z / $this->snappingGrid) * $this->snappingGrid;
+                }
+                else {
+                    $scale = $inputContext->actions->isButtonDown('fine_change') ? 0.01 : 0.1;
+                    if ($inputContext->actions->isButtonDown('scale_up')) {
+                        $transform->scale += $scale;
+                    } else if ($inputContext->actions->isButtonDown('scale_down')) {
+                        $transform->scale -= $scale;
+                    }
+                }
+            }
+            
+            // if snapping is enabled we snap the position to the grid
+            if ($this->snappingEnabled) {
+                $transform->position->x = round($transform->position->x / $this->snappingGrid) * $this->snappingGrid;
+                $transform->position->y = round($transform->position->y / $this->snappingGrid) * $this->snappingGrid;
+                $transform->position->z = round($transform->position->z / $this->snappingGrid) * $this->snappingGrid;
+            }
+            
             $transform->markDirty();
 
             // copy
@@ -163,7 +284,7 @@ class LevelEditorScene extends LevelScene
                 foreach($this->entities->components($this->selectedEntity) as $component) {
                     $this->entities->attach($copy, clone $component);
                 }
-                $this->selectedEntity = $copy;
+                $this->devEntityPickerDidSelectEntity($copy);
             }
 
             // delete 
@@ -194,6 +315,11 @@ class LevelEditorScene extends LevelScene
     public function render(RenderContext $context) : void
     {
         parent::render($context);
+
+        // display level editor help
+        DebugTextOverlay::debugString("Level Editor commands:");
+        DebugTextOverlay::debugString(" - Rebuild Heightmap: press 'm'");
+        DebugTextOverlay::debugString(" - Enable/Disable Grid Snapping: press 'b'" . ($this->snappingEnabled ? " (enabled)" : " (disabled)"));
 
         // draw systems
         $this->gizmoEditorSystem->render($this->entities, $context);
@@ -232,6 +358,9 @@ class LevelEditorScene extends LevelScene
         $this->roadRenderer->tmpP0 = $p0;
         $this->roadRenderer->tmpDest = $dest;
 
+        // get the model collection 
+        $modelCollection = $this->container->resolveModels();
+
         // hightlight the selected entity
         // by rendering an AABB around it
         if ($this->entities->valid($this->selectedEntity)) 
@@ -250,9 +379,21 @@ class LevelEditorScene extends LevelScene
                 $renderable = $this->entities->get($this->selectedEntity, DynamicRenderableModel::class);
                 $transform = $this->entities->get($this->selectedEntity, Transform::class);
 
-                foreach($renderable->model->meshes as $mesh) {
-                    D3D::aabb($transform->position, $mesh->aabb->min * $transform->scale, $mesh->aabb->max * $transform->scale, D3D::$colorGreen);
-                }
+                $model = $modelCollection->get($renderable->modelIdentifier);
+
+                DebugTextOverlay::debugString(
+                    sprintf(
+                        'Entity Dimensions: ' .
+                        'width: %.2fm ' .
+                        'height: %.2fm ' .
+                        'depth: %.2fm',
+                        $model->aabb->width() * $transform->scale->x,
+                        $model->aabb->height() * $transform->scale->y,
+                        $model->aabb->depth() * $transform->scale->z
+                    )
+                );
+
+                D3D::aabb($transform->position, $model->aabb->min * $transform->scale, $model->aabb->max * $transform->scale, D3D::$colorGreen);
             }
         }
     }
@@ -290,7 +431,7 @@ class LevelEditorScene extends LevelScene
             return;
         }
         
-        echo "Entity selected: $entityId\n";
+        Logger::info("Entity selected: {$entityId}");
         $this->selectEntity($entityId);
     }
 }
