@@ -4,7 +4,6 @@ namespace TowerDefense\System;
 
 use GL\Buffer\FloatBuffer;
 use GL\Math\Vec2;
-use GL\Math\Vec3;
 use GL\Math\Vec4;
 use TowerDefense\Component\HealthComponent;
 use TowerDefense\Component\ProgressComponent;
@@ -36,7 +35,7 @@ use VISU\System\VISULowPoly\LPModelCollection;
 class BarBillboardSystem implements SystemInterface
 {
     private ShaderProgram $shaderProgram; // the shader program
-
+    private QuadVertexArray $quadVertexArray; // the quad vertex array
     private int $barInstanceBuffer = 0; // buffer for the instance data
     private int $barAnchorProgressBuffer = 0; // buffer for the anchor and progress data
     private FloatBuffer $barInstanceData; // instance data
@@ -46,14 +45,63 @@ class BarBillboardSystem implements SystemInterface
 
     public function __construct(
         private GLState $gl,
-        private LPModelCollection $models,
+        private LPModelCollection $models
     ) {
+        // we use our own quadva
+        $this->quadVertexArray = new QuadVertexArray($gl);
+        $this->quadVertexArray->bind();
+
+        // vertex instancing divisor settings
+        glVertexAttribDivisor(0, 0); // position
+        glVertexAttribDivisor(1, 0); // texcoord (not used)
+
         // configure buffers
         $this->barInstanceData = new FloatBuffer();
         glGenBuffers(1, $this->barInstanceBuffer);
 
         $this->barAnchorProgressData = new FloatBuffer();
         glGenBuffers(1, $this->barAnchorProgressBuffer);
+
+        // instance data
+        glBindBuffer(GL_ARRAY_BUFFER, $this->barInstanceBuffer);
+
+        // bar size, we start at 2 because the first two locations are reserved for the quad vertex position and texcoords
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 0);
+        glVertexAttribDivisor(2, 1);
+
+        // border width
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 2 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(3, 1);
+
+        // z offset
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(4, 1);
+
+        // bar color
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 4, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(5, 1);
+
+        // anchor progress data
+        glBindBuffer(GL_ARRAY_BUFFER, $this->barAnchorProgressBuffer);
+
+        // offset worldspace y
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 0);
+        glVertexAttribDivisor(6, 1);
+
+        // anchor worldspace
+        glEnableVertexAttribArray(7);
+        glVertexAttribPointer(7, 3, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 1 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(7, 1);
+
+        // progress
+        glEnableVertexAttribArray(8);
+        glVertexAttribPointer(8, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(8, 1);
 
         // create the shader program
         $this->shaderProgram = new ShaderProgram($gl);
@@ -172,56 +220,19 @@ class BarBillboardSystem implements SystemInterface
             },
             // execute
             function (PipelineContainer $data, PipelineResources $resources) {
-                /** @var QuadVertexArray */
-                $quadVA = $resources->cacheStaticResource('quadva', function (GLState $gl) {
-                    return new QuadVertexArray($gl);
-                });
-
                 // activate the backbuffer as render target
                 $backbuffer = $data->get(BackbufferData::class)->target;
                 $renderTarget = $resources->getRenderTarget($backbuffer);
                 $renderTarget->preparePass();
 
-                // instance data
+                // bind the vertex array
+                $this->quadVertexArray->bind();
+
+                // bind the generic instance data
                 glBindBuffer(GL_ARRAY_BUFFER, $this->barInstanceBuffer);
 
-                // bar size, we start at 2 because the first two locations are reserved for the quad vertex position and texcoords
-                glEnableVertexAttribArray(2);
-                glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 0);
-                glVertexAttribDivisor(2, 1);
-
-                // border width
-                glEnableVertexAttribArray(3);
-                glVertexAttribPointer(3, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 2 * GL_SIZEOF_FLOAT);
-                glVertexAttribDivisor(3, 1);
-
-                // z offset
-                glEnableVertexAttribArray(4);
-                glVertexAttribPointer(4, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
-                glVertexAttribDivisor(4, 1);
-
-                // bar color
-                glEnableVertexAttribArray(5);
-                glVertexAttribPointer(5, 4, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
-                glVertexAttribDivisor(5, 1);
-
-                // anchor progress data
+                // bind the anchor progress data
                 glBindBuffer(GL_ARRAY_BUFFER, $this->barAnchorProgressBuffer);
-
-                // offset worldspace y
-                glEnableVertexAttribArray(6);
-                glVertexAttribPointer(6, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 0);
-                glVertexAttribDivisor(6, 1);
-
-                // anchor worldspace
-                glEnableVertexAttribArray(7);
-                glVertexAttribPointer(7, 3, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 1 * GL_SIZEOF_FLOAT);
-                glVertexAttribDivisor(7, 1);
-
-                // progress
-                glEnableVertexAttribArray(8);
-                glVertexAttribPointer(8, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
-                glVertexAttribDivisor(8, 1);
 
                 // activate the shader program
                 $this->shaderProgram->use();
@@ -247,9 +258,6 @@ class BarBillboardSystem implements SystemInterface
                 $this->shaderProgram->setUniformVec2('render_target_content_scale', $renderTargetContentScale);
 
                 // draw the bars
-                $quadVA->bind();
-                glVertexAttribDivisor(0, 0); // position
-                glVertexAttribDivisor(1, 0); // texcoord (not used)
                 glDrawArraysInstanced(GL_TRIANGLES, 0, 6, count($this->bars) * 2); // * 2 because we have to quads per bar (outer border and inner progress)
             }
         ));
@@ -281,7 +289,6 @@ class BarBillboardSystem implements SystemInterface
             // get the transform of this entity
             $transform = $entities->get($entity, Transform::class);
             $anchor = $transform->getWorldPosition($entities);
-            $highestY = 0.0;
             $highestY = $this->models->get($model->modelIdentifier)->aabb->max->y;
             $yOffset = 2.0 + ($highestY * $transform->scale->y);
             // if the bar already exists, check if the data has changed
