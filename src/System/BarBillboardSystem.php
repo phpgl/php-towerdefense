@@ -1,6 +1,6 @@
 <?php
 
-namespace TowerDefense\Renderer;
+namespace TowerDefense\System;
 
 use GL\Buffer\FloatBuffer;
 use GL\Math\Vec2;

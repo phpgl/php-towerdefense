@@ -7,7 +7,7 @@ use TowerDefense\Component\HealthComponent;
 use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Component\LevelSceneryComponent;
 use TowerDefense\Debug\DebugTextOverlay;
-use TowerDefense\Renderer\BarBillboardRenderer;
+use TowerDefense\Renderer\BarBillBoardSystem;
 use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\CameraSystem;
@@ -45,7 +45,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     /**
      * Billboard renderer
      */
-    protected BarBillboardRenderer $barBillboardRenderer;
+    protected BarBillBoardSystem $barBillboardRenderer;
 
     /**
      * A level loader, serializes and deserializes levels
@@ -121,7 +121,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         );
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
         $this->renderingSystem->addGeometryRenderer($this->roadRenderer);
-        $this->barBillboardRenderer = new BarBillboardRenderer($container->resolveGL(), $objectCollection);
+        $this->barBillboardRenderer = new BarBillBoardSystem($container->resolveGL(), $objectCollection);
         
 
         // basic camera system
