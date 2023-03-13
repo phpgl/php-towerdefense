@@ -10,6 +10,7 @@ use TowerDefense\Component\HealthComponent;
 use TowerDefense\Component\ProgressComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
+use VISU\ECS\SystemInterface;
 use VISU\Geo\Transform;
 use VISU\Graphics\GLState;
 use VISU\Graphics\QuadVertexArray;
@@ -32,7 +33,7 @@ use VISU\System\VISULowPoly\LPModelCollection;
  * 
  * @package TowerDefense\Renderer
  */
-class BarBillboardRenderer
+class BarBillboardSystem implements SystemInterface
 {
     private ShaderProgram $shaderProgram; // the shader program
 
@@ -107,6 +108,47 @@ class BarBillboardRenderer
         }
         GLSL));
         $this->shaderProgram->link();
+    }
+
+    /**
+     * Registers the system, this is where you should register all required components.
+     * 
+     * @return void 
+     */
+    public function register(EntitiesInterface $entities) : void
+    {
+        // register the components
+        $entities->registerComponent(HealthComponent::class);
+        $entities->registerComponent(ProgressComponent::class);
+
+        // attach a health bar to random objects
+        // @TODO this is for testing
+        foreach($entities->view(DynamicRenderableModel::class) as $entity => $comp) {
+            $health = $entities->attach($entity, new HealthComponent);
+            $health->health = rand(0, 100) / 100;
+        }
+    }
+
+    /**
+     * Unregisters the system, this is where you can handle any cleanup.
+     * 
+     * @return void 
+     */
+    public function unregister(EntitiesInterface $entities) : void
+    {
+        
+    }
+
+    /**
+     * Updates handler, this is where the game state should be updated.
+     * 
+     * @return void 
+     */
+    public function update(EntitiesInterface $entities) : void
+    {
+        foreach($entities->view(HealthComponent::class) as $entity => $comp) {
+            $comp->health = max(0, min(1, $comp->health - 0.001));
+        }
     }
 
     public function render(EntitiesInterface $entities, RenderContext $context): void

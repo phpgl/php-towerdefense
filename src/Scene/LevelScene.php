@@ -7,9 +7,10 @@ use TowerDefense\Component\HealthComponent;
 use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Component\LevelSceneryComponent;
 use TowerDefense\Debug\DebugTextOverlay;
-use TowerDefense\Renderer\BarBillBoardSystem;
+use TowerDefense\Renderer\BarBillboardRenderer;
 use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
+use TowerDefense\System\BarBillboardSystem;
 use TowerDefense\System\CameraSystem;
 use TowerDefense\System\HeightmapSystem;
 use VISU\ECS\EntityRegisty;
@@ -43,11 +44,6 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     protected RoadRenderer $roadRenderer;
 
     /**
-     * Billboard renderer
-     */
-    protected BarBillBoardSystem $barBillboardRenderer;
-
-    /**
      * A level loader, serializes and deserializes levels
      */
     protected LevelLoader $levelLoader;
@@ -73,6 +69,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     private VISULowPolyRenderingSystem $renderingSystem;
     private CameraSystem $cameraSystem;
     private HeightmapSystem $heightmapSystem;
+    private BarBillboardSystem $barBillboardSystem;
 
     /**
      * Dev entity picker, for debug and level editor
@@ -121,8 +118,9 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         );
         $this->renderingSystem->addGeometryRenderer($this->terrainRenderer);
         $this->renderingSystem->addGeometryRenderer($this->roadRenderer);
-        $this->barBillboardRenderer = new BarBillBoardSystem($container->resolveGL(), $objectCollection);
-        
+
+        // billboard system
+        $this->barBillboardSystem = new BarBillboardSystem($container->resolveGL(), $objectCollection);
 
         // basic camera system
         $this->cameraSystem = new CameraSystem(
@@ -145,6 +143,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
             $this->cameraSystem,
             $this->renderingSystem,
             $this->heightmapSystem,
+            $this->barBillboardSystem,
         ]);
 
         // construct the dev entity picker
@@ -365,8 +364,6 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         // register scene components
         $this->entities->registerComponent(LevelSceneryComponent::class);
-        $this->entities->registerComponent(HealthComponent::class);
-        $this->entities->registerComponent(ProgressComponent::class);
 
         // load the terrain from the level data
         if ($this->level->terrainFileName === null || !file_exists(VISU_PATH_RES_TERRAIN . $this->level->terrainFileName)) {
@@ -428,7 +425,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
         $this->renderingSystem->render($this->entities, $context);
 
         // render bar billboards (they are some kind of ui element)
-        $this->barBillboardRenderer->render($this->entities, $context);
+        $this->barBillboardSystem->render($this->entities, $context);
     }
 
     /**
