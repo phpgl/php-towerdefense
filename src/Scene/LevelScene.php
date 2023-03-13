@@ -3,11 +3,9 @@
 namespace TowerDefense\Scene;
 
 use GameContainer;
-use TowerDefense\Component\HealthComponent;
 use TowerDefense\Component\HeightmapComponent;
 use TowerDefense\Component\LevelSceneryComponent;
 use TowerDefense\Debug\DebugTextOverlay;
-use TowerDefense\Renderer\BarBillboardRenderer;
 use TowerDefense\Renderer\RoadRenderer;
 use TowerDefense\Renderer\TerrainRenderer;
 use TowerDefense\System\BarBillboardSystem;
@@ -404,6 +402,7 @@ abstract class LevelScene extends BaseScene implements DevEntityPickerDelegate
     {
         $this->cameraSystem->update($this->entities);
         $this->heightmapSystem->update($this->entities);
+        $this->barBillboardSystem->update($this->entities);
     }
 
     /**

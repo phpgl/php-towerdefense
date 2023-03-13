@@ -83,7 +83,7 @@ class BarBillboardSystem implements SystemInterface
             vec2 final_bar_size = bar_size;
             final_bar_size.x -= border_width * 2.0f;
             final_bar_size.y -= border_width * 2.0f;
-            final_bar_size.x *= bar_progress;
+            final_bar_size.x *= clamp(bar_progress, 0.0, 1.0);
             vec2 clip_space_bar_size = vec2((final_bar_size.x / render_target_size.x) * render_target_content_scale.x, (final_bar_size.y / render_target_size.y) * render_target_content_scale.y);
             gl_Position = projection * view * position_worldspace;
             gl_Position /= gl_Position.w;
@@ -115,7 +115,7 @@ class BarBillboardSystem implements SystemInterface
      * 
      * @return void 
      */
-    public function register(EntitiesInterface $entities) : void
+    public function register(EntitiesInterface $entities): void
     {
         // register the components
         $entities->registerComponent(HealthComponent::class);
@@ -123,7 +123,7 @@ class BarBillboardSystem implements SystemInterface
 
         // attach a health bar to random objects
         // @TODO this is for testing
-        foreach($entities->view(DynamicRenderableModel::class) as $entity => $comp) {
+        foreach ($entities->view(DynamicRenderableModel::class) as $entity => $comp) {
             $health = $entities->attach($entity, new HealthComponent);
             $health->health = rand(0, 100) / 100;
         }
@@ -134,9 +134,9 @@ class BarBillboardSystem implements SystemInterface
      * 
      * @return void 
      */
-    public function unregister(EntitiesInterface $entities) : void
+    public function unregister(EntitiesInterface $entities): void
     {
-        
+        // nothing here yet
     }
 
     /**
@@ -144,11 +144,12 @@ class BarBillboardSystem implements SystemInterface
      * 
      * @return void 
      */
-    public function update(EntitiesInterface $entities) : void
+    public function update(EntitiesInterface $entities): void
     {
-        foreach($entities->view(HealthComponent::class) as $entity => $comp) {
-            $comp->health = max(0, min(1, $comp->health - 0.001));
-        }
+        // @TODO this is for testing
+        /*foreach ($entities->view(HealthComponent::class) as $entity => $comp) {
+            $comp->health = max(0, min(1, $comp->health + 0.001));
+        }*/
     }
 
     public function render(EntitiesInterface $entities, RenderContext $context): void
