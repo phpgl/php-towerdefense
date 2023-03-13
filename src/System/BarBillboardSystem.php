@@ -53,7 +53,6 @@ class BarBillboardSystem implements SystemInterface
 
         // vertex instancing divisor settings
         glVertexAttribDivisor(0, 0); // position
-        glVertexAttribDivisor(1, 0); // texcoord (not used)
 
         // configure buffers
         $this->barInstanceData = new FloatBuffer();
@@ -66,55 +65,55 @@ class BarBillboardSystem implements SystemInterface
         glBindBuffer(GL_ARRAY_BUFFER, $this->barInstanceBuffer);
 
         // bar size, we start at 2 because the first two locations are reserved for the quad vertex position and texcoords
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 0);
-        glVertexAttribDivisor(2, 1);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 0);
+        glVertexAttribDivisor(1, 1);
 
         // border width
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 2 * GL_SIZEOF_FLOAT);
-        glVertexAttribDivisor(3, 1);
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 2 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(2, 1);
 
         // z offset
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
-        glVertexAttribDivisor(4, 1);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 1, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 3 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(3, 1);
 
         // bar color
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 4, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
-        glVertexAttribDivisor(5, 1);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, false, 8 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(4, 1);
 
         // anchor progress data
         glBindBuffer(GL_ARRAY_BUFFER, $this->barAnchorProgressBuffer);
 
         // offset worldspace y
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(6, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 0);
-        glVertexAttribDivisor(6, 1);
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 0);
+        glVertexAttribDivisor(5, 1);
 
         // anchor worldspace
-        glEnableVertexAttribArray(7);
-        glVertexAttribPointer(7, 3, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 1 * GL_SIZEOF_FLOAT);
-        glVertexAttribDivisor(7, 1);
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 3, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 1 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(6, 1);
 
         // progress
-        glEnableVertexAttribArray(8);
-        glVertexAttribPointer(8, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
-        glVertexAttribDivisor(8, 1);
+        glEnableVertexAttribArray(7);
+        glVertexAttribPointer(7, 1, GL_FLOAT, false, 5 * GL_SIZEOF_FLOAT, 4 * GL_SIZEOF_FLOAT);
+        glVertexAttribDivisor(7, 1);
 
         // create the shader program
         $this->shaderProgram = new ShaderProgram($gl);
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::VERTEX, <<< 'GLSL'
         #version 330 core
         layout (location = 0) in vec3 a_position;
-        layout (location = 2) in vec2 bar_size;
-        layout (location = 3) in float border_width;
-        layout (location = 4) in float z_offset;
-        layout (location = 5) in vec4 bar_color;
-        layout (location = 6) in float offset_worldspace_y;
-        layout (location = 7) in vec3 anchor_worldspace;
-        layout (location = 8) in float bar_progress;
+        layout (location = 1) in vec2 bar_size;
+        layout (location = 2) in float border_width;
+        layout (location = 3) in float z_offset;
+        layout (location = 4) in vec4 bar_color;
+        layout (location = 5) in float offset_worldspace_y;
+        layout (location = 6) in vec3 anchor_worldspace;
+        layout (location = 7) in float bar_progress;
 
         uniform vec3 camera_position;
         uniform mat4 projection;
@@ -122,37 +121,39 @@ class BarBillboardSystem implements SystemInterface
         uniform vec2 render_target_size;
         uniform vec2 render_target_content_scale;
 
-        out vec4 fColor;
+        out vec4 f_color;
         out float distance_to_camera;
+        out float z_position;
 
         void main()
         {
-            vec4 position_worldspace = vec4(anchor_worldspace.x, anchor_worldspace.y + offset_worldspace_y, anchor_worldspace.z, 1.0f);
             vec2 final_bar_size = bar_size;
             final_bar_size.x -= border_width * 2.0f;
             final_bar_size.y -= border_width * 2.0f;
             final_bar_size.x *= clamp(bar_progress, 0.0, 1.0);
-            vec2 clip_space_bar_size = vec2((final_bar_size.x / render_target_size.x) * render_target_content_scale.x, (final_bar_size.y / render_target_size.y) * render_target_content_scale.y);
-            gl_Position = projection * view * position_worldspace;
+            gl_Position = projection * view * vec4(anchor_worldspace.x, anchor_worldspace.y + offset_worldspace_y, anchor_worldspace.z, 1.0f);
+            z_position = gl_Position.z;
             gl_Position /= gl_Position.w;
-            gl_Position.xy += a_position.xy * clip_space_bar_size;
+            gl_Position.xy += a_position.xy * vec2((final_bar_size.x / render_target_size.x) * render_target_content_scale.x, (final_bar_size.y / render_target_size.y) * render_target_content_scale.y);
             gl_Position.x -= (((bar_size.x - final_bar_size.x) / render_target_size.x) * render_target_content_scale.x) - (((border_width * 2.0f) / render_target_size.x) * render_target_content_scale.x);
             distance_to_camera = distance(camera_position, anchor_worldspace);
             gl_Position.z = (distance_to_camera + z_offset) / 1000.0f;
-            fColor = bar_color;
+            f_color = bar_color;
         }
         GLSL));
         $this->shaderProgram->attach(new ShaderStage(ShaderStage::FRAGMENT, <<< 'GLSL'
         #version 330 core
         in float distance_to_camera;
-        in vec4 fColor;
+        in float z_position;
+        in vec4 f_color;
         out vec4 fragment_color;
 
         void main()
         {
             float fade_factor = 1.0 - smoothstep(0.0, 1.0, clamp((distance_to_camera - 75.0) / 150.0, 0.0, 1.0));
-            fragment_color = fColor;
+            fragment_color = f_color;
             fragment_color.a *= fade_factor;
+            fragment_color = mix(fragment_color, vec4(0.0, 0.0, 0.0, 0.0), step(z_position, 0.0));
         }
         GLSL));
         $this->shaderProgram->link();
