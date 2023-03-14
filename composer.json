@@ -25,7 +25,9 @@
         "phpgl/ide-stubs": "dev-main",
         "phpgl/visu": "@dev"
     },
-    
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
     "scripts": {
         "post-root-package-install": [
             "mkdir var/ && mkdir var/cache/ && chmod -R 777 var/"
