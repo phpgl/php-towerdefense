@@ -10,11 +10,7 @@ use TowerDefense\Component\ProgressComponent;
 use VISU\Component\VISULowPoly\DynamicRenderableModel;
 use VISU\ECS\EntitiesInterface;
 use VISU\ECS\SystemInterface;
-use VISU\Exception\VISUException;
 use VISU\Geo\Transform;
-use VISU\Graphics\Exception\ShaderProgramException;
-use VISU\Graphics\Exception\ShaderCompileException;
-use VISU\Graphics\Exception\ShaderProgramLinkingException;
 use VISU\Graphics\GLState;
 use VISU\Graphics\QuadVertexArray;
 use VISU\Graphics\Rendering\Pass\BackbufferData;
@@ -46,16 +42,6 @@ class BarBillboardSystem implements SystemInterface
     private FloatBuffer $barAnchorProgressData; // anchor and progress data
     private array $bars = []; // the bars to render, used for cache checks
 
-    /**
-     * Constructor
-     * 
-     * @param GLState $gl 
-     * @param LPModelCollection $models 
-     * @return void 
-     * @throws ShaderProgramException 
-     * @throws ShaderCompileException 
-     * @throws ShaderProgramLinkingException 
-     */
     public function __construct(
         private GLState $gl,
         private LPModelCollection $models
@@ -174,8 +160,6 @@ class BarBillboardSystem implements SystemInterface
 
     /**
      * Registers the system, this is where you should register all required components.
-     * 
-     * @return void 
      */
     public function register(EntitiesInterface $entities): void
     {
@@ -193,8 +177,6 @@ class BarBillboardSystem implements SystemInterface
 
     /**
      * Unregisters the system, this is where you can handle any cleanup.
-     * 
-     * @return void 
      */
     public function unregister(EntitiesInterface $entities): void
     {
@@ -203,8 +185,6 @@ class BarBillboardSystem implements SystemInterface
 
     /**
      * Updates handler, this is where the game state should be updated.
-     * 
-     * @return void 
      */
     public function update(EntitiesInterface $entities): void
     {
@@ -216,11 +196,6 @@ class BarBillboardSystem implements SystemInterface
 
     /**
      * Renders the bars
-     * 
-     * @param EntitiesInterface $entities 
-     * @param RenderContext $context 
-     * @return void 
-     * @throws VISUException 
      */
     public function render(EntitiesInterface $entities, RenderContext $context): void
     {
@@ -287,10 +262,6 @@ class BarBillboardSystem implements SystemInterface
 
     /**
      * Processes the bars from the entities and manage the buffers
-     * 
-     * @param EntitiesInterface $entities 
-     * @return void 
-     * @throws VISUException 
      */
     private function processBars(EntitiesInterface $entities): void
     {
