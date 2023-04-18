@@ -1,10 +1,12 @@
-# PHP Tower Defense
 
-<p align="left">
- <img width="350px" src="https://user-images.githubusercontent.com/956212/215984418-4cdfc53a-5047-4b61-a0da-396f223f677f.jpg">
+<p align="center">
+ <img width="150px" src="https://user-images.githubusercontent.com/956212/215984418-4cdfc53a-5047-4b61-a0da-396f223f677f.jpg">
 </p>
 
-A simple 3D tower defense game written in PHP, using PHP-GLFW and the VISU framework.
+
+# PHP Tower Defense
+
+A simple 3D tower defense game written in PHP, using [PHP-GLFW](http://github.com/mario-deluna/php-glfw) and the [VISU](https://github.com/phpgl/visu) framework.
 
 ## Screenshots
 
