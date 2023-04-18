@@ -8,6 +8,27 @@
 
 A simple 3D tower defense game written in PHP, using [PHP-GLFW](http://github.com/mario-deluna/php-glfw) and the [VISU](https://github.com/phpgl/visu) framework.
 
+## Features
+
+ * Rendering Graph'ish pipeline
+ * Deferred rendering 
+ * Translation animation system
+ * SSAO pass
+ * Shader managment with includes
+ * Simple terrain renderer with heightmap recorder
+ * Debug texts overlay
+ * Billboard progress bars
+ * Level serialization
+ * LowPoly Model loading & rendering
+ * RTS / Citybuilder like camera system
+ * Keyboard and Mouse input event system
+ * Entity component system
+ * Entity Picker 
+ * Ray intersection testing
+ * GizMo 
+ * Varios 3D debugging shaped and lines
+ * alot more stuff.
+
 ## Screenshots & Gifs
 
 
