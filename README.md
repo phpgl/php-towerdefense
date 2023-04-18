@@ -26,3 +26,26 @@ Simple rendering profiler:
 Some scene
 
 ![s](https://user-images.githubusercontent.com/956212/222989984-e1b2d431-26de-47f4-a17d-7800e5afb052.jpg)
+
+Deferred rendering 
+
+<table>
+ <tr>
+  <td><img width="1274" alt="s1" src="https://user-images.githubusercontent.com/956212/232911731-58d65af1-c3bb-413d-81a5-4c9944b084b7.png"></td>
+  <td><img width="1274" alt="s2" src="https://user-images.githubusercontent.com/956212/232911738-e35b6c77-1e86-4f05-ae57-330208c68d47.png"></td>
+ </tr>
+ <tr>
+  <td><img width="1274" alt="s3" src="https://user-images.githubusercontent.com/956212/232911751-98a4ba35-a311-4ed0-a1a9-d862fb571c6c.png"></td>
+  <td><img width="1274" alt="s4" src="https://user-images.githubusercontent.com/956212/232911779-f5219985-7450-4d18-8cd5-3539969f691c.png"></td>
+ </tr>
+ <tr>
+  <td><img width="1274" alt="s5" src="https://user-images.githubusercontent.com/956212/232911794-1ccee769-965a-458a-a178-cc6594efd34a.png"></td>
+ </tr>
+ </table>
+
+
+
+
+
+
+
