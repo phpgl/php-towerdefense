@@ -1,6 +1,6 @@
 
 <p align="center">
- <img width="150px" src="https://user-images.githubusercontent.com/956212/215984418-4cdfc53a-5047-4b61-a0da-396f223f677f.jpg">
+ <img width="350px" src="https://github.com/phpgl/php-towerdefense/assets/956212/f5dbb6e7-90e4-4f9d-a235-c08be113ce80">
 </p>
 
 
